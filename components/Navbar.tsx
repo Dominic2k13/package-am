@@ -36,7 +36,7 @@ export default function Navbar({ cartCount = 0, cashback = 0, onCartOpen }: Navb
         </div>
 
         {/* Right actions */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           {cashback > 0 && (
             <Link
               href="/cashback"

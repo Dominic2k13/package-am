@@ -253,16 +253,16 @@ function DashboardTab({ onWalletClick }: { onWalletClick: () => void }) {
       </button>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {STATS.map(stat => (
-          <div key={stat.label} className="bg-white rounded-2xl p-5 shadow-card border border-brand-border/50">
-            <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center mb-3`}>
-              <stat.icon className={`w-5 h-5 ${stat.color}`} />
+          <div key={stat.label} className="bg-white rounded-2xl p-4 sm:p-5 shadow-card border border-brand-border/50">
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 ${stat.bg} rounded-xl flex items-center justify-center mb-3`}>
+              <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color}`} />
             </div>
-            <p className="font-syne font-extrabold text-2xl text-brand-dark">{stat.value}</p>
-            <p className="text-brand-muted text-xs mt-0.5">{stat.label}</p>
-            <p className={`text-xs font-medium mt-1 flex items-center gap-1 ${stat.color}`}>
-              <ArrowUpRight className="w-3 h-3" />{stat.sub}
+            <p className="font-syne font-extrabold text-xl sm:text-2xl text-brand-dark">{stat.value}</p>
+            <p className="text-brand-muted text-[11px] sm:text-xs mt-0.5 leading-tight">{stat.label}</p>
+            <p className={`text-[10px] sm:text-xs font-medium mt-1 flex items-center gap-0.5 ${stat.color}`}>
+              <ArrowUpRight className="w-3 h-3 shrink-0" /><span className="truncate">{stat.sub}</span>
             </p>
           </div>
         ))}
@@ -279,17 +279,17 @@ function DashboardTab({ onWalletClick }: { onWalletClick: () => void }) {
             {liveOrders.map(order => {
               const cfg = STATUS_CONFIG[order.status]
               return (
-                <div key={order.id} className="flex items-center justify-between p-4 bg-brand-bg rounded-xl">
-                  <div className="flex items-center gap-3">
+                <div key={order.id} className="flex items-center justify-between gap-3 p-3 sm:p-4 bg-brand-bg rounded-xl">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 gradient-orange rounded-full flex items-center justify-center font-bold text-white text-xs shrink-0">
                       {order.avatar}
                     </div>
-                    <div>
-                      <p className="font-semibold text-brand-dark text-sm">{order.customer}</p>
-                      <p className="text-brand-muted text-xs">{order.items.slice(0, 2).join(', ')}</p>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-brand-dark text-sm truncate">{order.customer}</p>
+                      <p className="text-brand-muted text-xs truncate">{order.items.slice(0, 2).join(', ')}</p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0">
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${cfg.bg} ${cfg.text}`}>
                       {cfg.label}
                     </span>
@@ -409,11 +409,11 @@ function OrdersTab() {
                 <span className="font-syne font-bold text-brand-dark text-sm">{order.id}</span>
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${cfg.bg} ${cfg.text}`}>{cfg.label}</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 gradient-orange rounded-full flex items-center justify-center font-bold text-white text-sm shrink-0">{order.avatar}</div>
-                <div>
-                  <p className="font-semibold text-brand-dark text-sm">{order.customer}</p>
-                  <p className="text-brand-muted text-xs flex items-center gap-1"><Bike className="w-3 h-3" />{order.address}</p>
+                <div className="min-w-0">
+                  <p className="font-semibold text-brand-dark text-sm truncate">{order.customer}</p>
+                  <p className="text-brand-muted text-xs flex items-center gap-1 truncate"><Bike className="w-3 h-3 shrink-0" />{order.address}</p>
                 </div>
               </div>
               <div>
@@ -556,11 +556,11 @@ function EarningsTab() {
         </div>
         <div className="divide-y divide-brand-border">
           {VENDOR_TRANSACTIONS.map(tx => (
-            <div key={tx.id} className="flex items-center gap-4 px-6 py-4 hover:bg-brand-bg transition-colors">
-              <div className="w-10 h-10 gradient-orange rounded-full flex items-center justify-center font-bold text-white text-sm shrink-0">{tx.avatar}</div>
+            <div key={tx.id} className="flex items-center gap-3 px-4 sm:px-6 py-4 hover:bg-brand-bg transition-colors">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 gradient-orange rounded-full flex items-center justify-center font-bold text-white text-sm shrink-0">{tx.avatar}</div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-brand-dark text-sm">{tx.customer}</p>
-                <p className="text-brand-muted text-xs">{tx.orderId} · {tx.time}</p>
+                <p className="font-semibold text-brand-dark text-sm truncate">{tx.customer}</p>
+                <p className="text-brand-muted text-xs truncate">{tx.orderId} · {tx.time}</p>
               </div>
               <div className="text-right shrink-0">
                 <p className="font-syne font-bold text-brand-orange text-sm">₦{tx.amount.toLocaleString()}</p>
@@ -645,7 +645,7 @@ function WalletTab() {
               <Wallet className="w-5 h-5 text-white/60" />
               <p className="text-white/60 text-sm font-medium">Available Balance</p>
             </div>
-            <p className="font-syne font-extrabold text-white text-5xl mb-1">
+            <p className="font-syne font-extrabold text-white text-4xl sm:text-5xl mb-1">
               ₦{balance.toLocaleString()}
             </p>
             <p className="text-white/50 text-xs flex items-center gap-1.5">
@@ -664,11 +664,11 @@ function WalletTab() {
         </div>
 
         {/* Mini stats row */}
-        <div className="relative mt-6 pt-5 border-t border-white/10 grid grid-cols-3 gap-4">
+        <div className="relative mt-6 pt-5 border-t border-white/10 grid grid-cols-3 gap-2 sm:gap-4">
           {STATS.map(s => (
             <div key={s.label}>
-              <p className="text-white/50 text-[10px] mb-0.5">{s.label}</p>
-              <p className="font-syne font-bold text-white text-base">{s.value}</p>
+              <p className="text-white/50 text-[9px] sm:text-[10px] mb-0.5 truncate">{s.label}</p>
+              <p className="font-syne font-bold text-white text-sm sm:text-base">{s.value}</p>
             </div>
           ))}
         </div>
@@ -755,7 +755,7 @@ function WalletTab() {
                 />
               </div>
               {/* Quick-fill amounts */}
-              <div className="flex gap-2 mt-2">
+              <div className="flex flex-wrap gap-2 mt-2">
                 {[500, 1000, 2000, 5000].filter(v => v <= balance).map(v => (
                   <button
                     key={v}
@@ -804,13 +804,13 @@ function WalletTab() {
         </div>
         <div className="divide-y divide-brand-border">
           {VENDOR_TRANSACTIONS.map(tx => (
-            <div key={tx.id} className="flex items-center gap-4 px-6 py-4 hover:bg-brand-bg transition-colors">
-              <div className="w-10 h-10 gradient-cashback rounded-full flex items-center justify-center font-bold text-white text-sm shrink-0">
+            <div key={tx.id} className="flex items-center gap-3 px-4 sm:px-6 py-4 hover:bg-brand-bg transition-colors">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 gradient-cashback rounded-full flex items-center justify-center font-bold text-white text-sm shrink-0">
                 {tx.avatar}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-brand-dark text-sm">{tx.customer}</p>
-                <p className="text-brand-muted text-xs">{tx.orderId} · {tx.time}</p>
+                <p className="font-semibold text-brand-dark text-sm truncate">{tx.customer}</p>
+                <p className="text-brand-muted text-xs truncate">{tx.orderId} · {tx.time}</p>
               </div>
               <div className="text-right shrink-0">
                 <p className="font-syne font-bold text-brand-cashback text-sm">+₦{tx.cashback}</p>
@@ -819,7 +819,7 @@ function WalletTab() {
             </div>
           ))}
         </div>
-        <div className="px-6 py-4 bg-brand-cashback-light/50 rounded-b-2xl flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 bg-brand-cashback-light/50 rounded-b-2xl flex items-center justify-between gap-3">
           <span className="text-brand-cashback text-sm font-semibold">Total earned this month</span>
           <span className="font-syne font-extrabold text-brand-cashback">
             ₦{VENDOR_TRANSACTIONS.reduce((s, t) => s + t.cashback, 0).toLocaleString()}

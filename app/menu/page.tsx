@@ -125,8 +125,8 @@ function MenuPageInner() {
         {/* Header */}
         <div className="bg-white border-b border-brand-border">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-            <h1 className="font-syne font-extrabold text-3xl text-brand-dark mb-1">🍽️ What Are You Craving?</h1>
-            <p className="text-brand-muted text-sm mb-6">Fresh from the best restaurants near you</p>
+            <h1 className="font-syne font-extrabold text-2xl sm:text-3xl text-brand-dark mb-1">🍽️ What Are You Craving?</h1>
+            <p className="text-brand-muted text-sm mb-5">Fresh from the best restaurants near you</p>
 
             {/* Search */}
             <div className="relative max-w-lg">

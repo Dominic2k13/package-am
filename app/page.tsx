@@ -41,7 +41,7 @@ export default function HomePage() {
               🚀 Fastest Delivery in Town
             </span>
 
-            <h1 className="font-syne font-extrabold text-4xl sm:text-5xl lg:text-[3.5rem] text-brand-dark leading-[1.1] mb-6">
+            <h1 className="font-syne font-extrabold text-3xl sm:text-4xl lg:text-5xl xl:text-[3.5rem] text-brand-dark leading-[1.15] mb-6">
               Order Food,{' '}
               <span className="text-brand-orange">Earn Cashback</span>{' '}
               Every Time
@@ -51,7 +51,7 @@ export default function HomePage() {
               Nigeria&apos;s favourite food delivery platform. Fast, tasty, and rewarding — every single order.
             </p>
 
-            <div className="flex flex-wrap gap-3 mb-10">
+            <div className="flex flex-col xs:flex-row flex-wrap gap-3 mb-10">
               <Link
                 href="/menu"
                 className="inline-flex items-center gap-2 gradient-orange text-white px-6 py-3.5 rounded-full font-syne font-semibold text-sm hover:opacity-90 active:scale-95 transition-all shadow-card"
@@ -78,8 +78,8 @@ export default function HomePage() {
           </div>
 
           {/* Right: hero image + floating cards */}
-          <div className="relative flex justify-center lg:justify-end animate-hero-float">
-            <div className="relative w-72 h-72 sm:w-80 sm:h-80 rounded-full overflow-hidden border-4 border-white shadow-[0_24px_64px_rgba(255,90,31,0.18)]">
+          <div className="relative flex justify-center lg:justify-end animate-hero-float px-12 sm:px-16 lg:px-0">
+            <div className="relative w-64 h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full overflow-hidden border-4 border-white shadow-[0_24px_64px_rgba(255,90,31,0.18)]">
               <Image
                 src="https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=640&q=85"
                 alt="Delicious Jollof Rice"
@@ -90,8 +90,8 @@ export default function HomePage() {
               />
             </div>
 
-            {/* Floating: Order confirmed */}
-            <div className="absolute -left-4 top-1/4 bg-white rounded-2xl shadow-card px-4 py-3 flex items-center gap-3 min-w-[160px]">
+            {/* Floating: Order confirmed — hidden on xs, shown sm+ */}
+            <div className="hidden sm:flex absolute -left-4 top-1/4 bg-white rounded-2xl shadow-card px-4 py-3 items-center gap-3 min-w-[150px]">
               <div className="w-9 h-9 bg-brand-green/10 rounded-full flex items-center justify-center shrink-0">
                 <CheckCircle className="w-4 h-4 text-brand-green" />
               </div>
@@ -101,8 +101,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Floating: Cashback */}
-            <div className="absolute -right-2 bottom-1/4 bg-white rounded-2xl shadow-card px-4 py-3 flex items-center gap-3 min-w-[160px]">
+            {/* Floating: Cashback — hidden on xs, shown sm+ */}
+            <div className="hidden sm:flex absolute -right-2 bottom-1/4 bg-white rounded-2xl shadow-card px-4 py-3 items-center gap-3 min-w-[150px]">
               <div className="w-9 h-9 gradient-cashback rounded-full flex items-center justify-center shrink-0">
                 <span className="text-white text-xs font-bold">5%</span>
               </div>
@@ -168,7 +168,7 @@ export default function HomePage() {
                 <p className="text-white/60 text-sm mb-1">Your balance</p>
                 <p className="font-syne font-extrabold text-white text-4xl">₦1,250</p>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2 w-full">
                 {[
                   { icon: Smartphone,      label: 'Buy Airtime', href: '/cashback' },
                   { icon: Wifi,            label: 'Buy Data',    href: '/cashback' },

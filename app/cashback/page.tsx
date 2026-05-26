@@ -77,13 +77,13 @@ export default function CashbackPage() {
               <Wallet className="w-4 h-4" /> My Cashback Wallet
             </div>
             <p className="text-white/70 text-sm mb-2">Available balance</p>
-            <p className="font-syne font-extrabold text-white text-6xl mb-2">
+            <p className="font-syne font-extrabold text-white text-4xl sm:text-5xl md:text-6xl mb-2">
               ₦{balance.toLocaleString()}
             </p>
             <p className="text-white/60 text-sm">5% back on every order — no expiry, no hassle</p>
 
             {/* Mini stats */}
-            <div className="mt-8 grid grid-cols-2 gap-3 max-w-sm mx-auto">
+            <div className="mt-8 grid grid-cols-2 gap-3 w-full max-w-sm mx-auto">
               <div className="bg-white/10 border border-white/20 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <TrendingUp className="w-4 h-4 text-white/70" />
@@ -170,7 +170,7 @@ export default function CashbackPage() {
                 />
 
                 {/* Quick-fill */}
-                <div className="flex gap-2 mt-2.5">
+                <div className="flex flex-wrap gap-2 mt-2.5">
                   {QUICK_AMOUNTS.map(q => (
                     <button
                       key={q}
@@ -238,7 +238,7 @@ export default function CashbackPage() {
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-brand-dark text-sm font-medium truncate">{tx.label}</p>
+                    <p className="text-brand-dark text-sm font-medium truncate max-w-[180px] sm:max-w-none">{tx.label}</p>
                     <div className="flex items-center gap-1 mt-0.5">
                       <Clock className="w-3 h-3 text-brand-muted" />
                       <span className="text-brand-muted text-xs">{tx.date}</span>
