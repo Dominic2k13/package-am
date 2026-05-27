@@ -146,8 +146,8 @@ export default function Navbar({ cartCount = 0, cashback = 0, onCartOpen }: Navb
               // Skeleton while localStorage hydrates (avoids flash)
               <div className="hidden md:block w-20 h-8 bg-brand-border/40 rounded-full animate-pulse" />
             ) : user ? (
-              /* ── Signed-in: user avatar + dropdown */
-              <div className="relative" ref={userMenuRef}>
+              /* ── Signed-in: user avatar + dropdown (desktop only — mobile uses hamburger) */
+              <div className="relative hidden md:block" ref={userMenuRef}>
                 <motion.button
                   onClick={() => setUserMenuOpen(o => !o)}
                   className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-brand-bg transition-colors"
