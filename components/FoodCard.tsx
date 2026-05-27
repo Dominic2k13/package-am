@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { Plus, Star, Timer } from 'lucide-react'
+import { motion } from 'framer-motion'
 import type { FoodItem } from '@/types'
 
 interface FoodCardProps {
@@ -11,21 +12,32 @@ interface FoodCardProps {
 
 export default function FoodCard({ item, onAdd }: FoodCardProps) {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 group flex flex-col">
+    <motion.div
+      className="bg-white rounded-2xl overflow-hidden shadow-card flex flex-col"
+      whileHover={{ y: -6, boxShadow: '0 16px 40px rgba(255,90,31,0.18)' }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+    >
       <div className="relative h-44 overflow-hidden shrink-0">
-        <Image
-          src={item.image}
-          alt={item.name}
-          fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        <motion.div
+          className="absolute inset-0"
+          whileHover={{ scale: 1.07 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+        >
+          <Image
+            src={item.image}
+            alt={item.name}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className="object-cover"
+          />
+        </motion.div>
         {item.badge && (
-          <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-brand-dark text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
+          <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-brand-dark text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm z-10">
             {item.badge}
           </span>
         )}
-        <span className="absolute top-3 right-3 gradient-cashback text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm">
+        <span className="absolute top-3 right-3 gradient-cashback text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm z-10">
           💜 5% Back
         </span>
       </div>
@@ -45,15 +57,18 @@ export default function FoodCard({ item, onAdd }: FoodCardProps) {
           <span className="font-syne font-bold text-brand-orange text-lg">
             ₦{item.price.toLocaleString()}
           </span>
-          <button
+          <motion.button
             onClick={() => onAdd(item)}
-            className="w-9 h-9 gradient-orange text-white rounded-full flex items-center justify-center hover:opacity-90 active:scale-90 transition-all shadow-sm"
+            className="w-9 h-9 gradient-orange text-white rounded-full flex items-center justify-center shadow-sm"
+            whileHover={{ scale: 1.15, rotate: 90 }}
+            whileTap={{ scale: 0.85 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
             aria-label={`Add ${item.name} to cart`}
           >
             <Plus className="w-4 h-4" />
-          </button>
+          </motion.button>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

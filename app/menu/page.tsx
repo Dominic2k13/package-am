@@ -3,10 +3,12 @@
 import { useState, useMemo, useCallback, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Search, X, CheckCircle } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import FoodCard from '@/components/FoodCard'
 import CartSidebar from '@/components/CartSidebar'
+import { StaggerGrid, StaggerItem } from '@/components/ui/StaggerGrid'
 import { FOOD_ITEMS, CATEGORIES } from '@/lib/data'
 import type { FoodItem, CartItem } from '@/types'
 
@@ -16,7 +18,13 @@ function OrderSuccessModal({
 }: { orderId: string; earnedCashback: number; onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[300] flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center animate-fade-up">
+      <motion.div
+        className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center"
+        initial={{ opacity: 0, scale: 0.85, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 10 }}
+        transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+      >
         <div className="w-16 h-16 bg-brand-green/10 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle className="w-8 h-8 text-brand-green" />
         </div>
@@ -42,13 +50,15 @@ function OrderSuccessModal({
           </div>
         </div>
 
-        <button
+        <motion.button
           onClick={onClose}
-          className="w-full gradient-orange text-white py-3.5 rounded-full font-syne font-semibold hover:opacity-90 active:scale-95 transition-all"
+          className="w-full gradient-orange text-white py-3.5 rounded-full font-syne font-semibold hover:opacity-90 transition-all"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
         >
           Continue Shopping
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
     </div>
   )
 }
@@ -61,9 +71,16 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
   }, [onDone])
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[400] bg-brand-dark text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl animate-fade-up whitespace-nowrap">
+    <motion.div
+      className="fixed bottom-6 left-1/2 z-[400] bg-brand-dark text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl whitespace-nowrap"
+      style={{ x: '-50%' }}
+      initial={{ opacity: 0, y: 24, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 12, scale: 0.95 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+    >
       {message}
-    </div>
+    </motion.div>
   )
 }
 
@@ -168,30 +185,54 @@ function MenuPageInner() {
 
         {/* Grid */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-8">
-          {filteredItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
-              <div className="text-5xl">🍽️</div>
-              <div>
-                <p className="font-syne font-bold text-brand-dark text-lg mb-1">No results found</p>
-                <p className="text-brand-muted text-sm">Try a different category or search term</p>
-              </div>
-              <button
-                onClick={() => { setActiveCategory('all'); setSearchTerm('') }}
-                className="mt-2 gradient-orange text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
+          <AnimatePresence mode="wait">
+            {filteredItems.length === 0 ? (
+              <motion.div
+                key="empty"
+                className="flex flex-col items-center justify-center py-24 text-center gap-4"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.3 }}
               >
-                Clear Filters
-              </button>
-            </div>
-          ) : (
-            <>
-              <p className="text-brand-muted text-sm mb-6">{filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} found</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {filteredItems.map(item => (
-                  <FoodCard key={item.id} item={item} onAdd={addToCart} />
-                ))}
-              </div>
-            </>
-          )}
+                <motion.div
+                  className="text-5xl"
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 18, delay: 0.1 }}
+                >🍽️</motion.div>
+                <div>
+                  <p className="font-syne font-bold text-brand-dark text-lg mb-1">No results found</p>
+                  <p className="text-brand-muted text-sm">Try a different category or search term</p>
+                </div>
+                <motion.button
+                  onClick={() => { setActiveCategory('all'); setSearchTerm('') }}
+                  className="mt-2 gradient-orange text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-opacity"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.96 }}
+                >
+                  Clear Filters
+                </motion.button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="results"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <p className="text-brand-muted text-sm mb-6">{filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} found</p>
+                <StaggerGrid className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {filteredItems.map(item => (
+                    <StaggerItem key={item.id}>
+                      <FoodCard item={item} onAdd={addToCart} />
+                    </StaggerItem>
+                  ))}
+                </StaggerGrid>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </main>
 
@@ -206,15 +247,20 @@ function MenuPageInner() {
         onCheckout={checkout}
       />
 
-      {successData && (
-        <OrderSuccessModal
-          orderId={successData.orderId}
-          earnedCashback={successData.cashback}
-          onClose={() => setSuccessData(null)}
-        />
-      )}
+      <AnimatePresence>
+        {successData && (
+          <OrderSuccessModal
+            key="success-modal"
+            orderId={successData.orderId}
+            earnedCashback={successData.cashback}
+            onClose={() => setSuccessData(null)}
+          />
+        )}
+      </AnimatePresence>
 
-      {toast && <Toast message={toast} onDone={() => setToast('')} />}
+      <AnimatePresence>
+        {toast && <Toast key={toast} message={toast} onDone={() => setToast('')} />}
+      </AnimatePresence>
     </>
   )
 }

@@ -3,6 +3,9 @@
 import { useState, useCallback, type FormEvent, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
+import { StaggerGrid, StaggerItem } from '@/components/ui/StaggerGrid'
+import AnimateIn from '@/components/ui/AnimateIn'
 import {
   Package, LayoutDashboard, UtensilsCrossed, ClipboardList,
   TrendingUp, Settings, LogOut, Bell, ChevronRight, Star,
@@ -233,9 +236,12 @@ function DashboardTab({ onWalletClick }: { onWalletClick: () => void }) {
       </div>
 
       {/* Wallet quick-access banner */}
-      <button
+      <AnimateIn direction="up" delay={0.05}>
+      <motion.button
         onClick={onWalletClick}
-        className="w-full gradient-cashback rounded-2xl p-5 flex items-center justify-between group hover:opacity-95 active:scale-[0.99] transition-all shadow-card text-left"
+        className="w-full gradient-cashback rounded-2xl p-5 flex items-center justify-between group hover:opacity-95 transition-all shadow-card text-left"
+        whileHover={{ scale: 1.01 }}
+        whileTap={{ scale: 0.99 }}
       >
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
@@ -250,12 +256,14 @@ function DashboardTab({ onWalletClick }: { onWalletClick: () => void }) {
           <span className="hidden sm:inline">Redeem Now</span>
           <ChevronRight className="w-4 h-4" />
         </div>
-      </button>
+      </motion.button>
+      </AnimateIn>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <StaggerGrid className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {STATS.map(stat => (
-          <div key={stat.label} className="bg-white rounded-2xl p-4 sm:p-5 shadow-card border border-brand-border/50">
+          <StaggerItem key={stat.label}>
+          <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card border border-brand-border/50">
             <div className={`w-9 h-9 sm:w-10 sm:h-10 ${stat.bg} rounded-xl flex items-center justify-center mb-3`}>
               <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.color}`} />
             </div>
@@ -265,8 +273,9 @@ function DashboardTab({ onWalletClick }: { onWalletClick: () => void }) {
               <ArrowUpRight className="w-3 h-3 shrink-0" /><span className="truncate">{stat.sub}</span>
             </p>
           </div>
+          </StaggerItem>
         ))}
-      </div>
+      </StaggerGrid>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Live orders */}
@@ -275,11 +284,12 @@ function DashboardTab({ onWalletClick }: { onWalletClick: () => void }) {
             <span className="w-2 h-2 bg-brand-green rounded-full animate-pulse" />
             Live Orders
           </h3>
-          <div className="space-y-3">
+          <StaggerGrid className="space-y-3">
             {liveOrders.map(order => {
               const cfg = STATUS_CONFIG[order.status]
               return (
-                <div key={order.id} className="flex items-center justify-between gap-3 p-3 sm:p-4 bg-brand-bg rounded-xl">
+                <StaggerItem key={order.id}>
+                <div className="flex items-center justify-between gap-3 p-3 sm:p-4 bg-brand-bg rounded-xl">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 gradient-orange rounded-full flex items-center justify-center font-bold text-white text-xs shrink-0">
                       {order.avatar}
@@ -296,9 +306,10 @@ function DashboardTab({ onWalletClick }: { onWalletClick: () => void }) {
                     <p className="text-brand-muted text-xs mt-1">{order.time}</p>
                   </div>
                 </div>
+                </StaggerItem>
               )
             })}
-          </div>
+          </StaggerGrid>
         </div>
 
         {/* Revenue chart */}
@@ -445,9 +456,16 @@ function OrdersTab() {
         })}
       </div>
 
+      <AnimatePresence>
       {detail && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[300] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-7 animate-fade-up">
+          <motion.div
+            className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-7"
+            initial={{ opacity: 0, scale: 0.88, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92 }}
+            transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+          >
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-syne font-bold text-brand-dark text-lg">{detail.id}</h3>
               <button onClick={() => setDetail(null)} className="w-8 h-8 rounded-full bg-brand-bg flex items-center justify-center hover:bg-brand-border transition-colors">
@@ -475,9 +493,10 @@ function OrdersTab() {
                 <span className="text-brand-orange">₦{detail.total.toLocaleString()}</span>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -645,9 +664,15 @@ function WalletTab() {
               <Wallet className="w-5 h-5 text-white/60" />
               <p className="text-white/60 text-sm font-medium">Available Balance</p>
             </div>
-            <p className="font-syne font-extrabold text-white text-4xl sm:text-5xl mb-1">
+            <motion.p
+              className="font-syne font-extrabold text-white text-4xl sm:text-5xl mb-1"
+              key={balance}
+              initial={{ scale: 1.1, opacity: 0.6 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            >
               ₦{balance.toLocaleString()}
-            </p>
+            </motion.p>
             <p className="text-white/50 text-xs flex items-center gap-1.5">
               <ArrowDownLeft className="w-3.5 h-3.5 text-white/40" />
               Earned from {VENDOR_TRANSACTIONS.length} orders this month
@@ -710,21 +735,36 @@ function WalletTab() {
           </div>
 
           {/* Form */}
-          {success && (
-            <div className="flex items-center gap-3 bg-brand-green/10 border border-brand-green/20 text-brand-green rounded-xl px-4 py-3 animate-fade-up">
-              <CheckCircle className="w-5 h-5 shrink-0" />
-              <div>
-                <p className="font-semibold text-sm">Redemption Successful!</p>
-                <p className="text-xs opacity-80">Your request has been processed.</p>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 text-sm">
-              <span>⚠️</span> {error}
-            </div>
-          )}
+          <AnimatePresence>
+            {success && (
+              <motion.div
+                key="wallet-success"
+                className="flex items-center gap-3 bg-brand-green/10 border border-brand-green/20 text-brand-green rounded-xl px-4 py-3"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
+              >
+                <CheckCircle className="w-5 h-5 shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm">Redemption Successful!</p>
+                  <p className="text-xs opacity-80">Your request has been processed.</p>
+                </div>
+              </motion.div>
+            )}
+            {error && (
+              <motion.div
+                key="wallet-error"
+                className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 text-sm"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
+              >
+                <span>⚠️</span> {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <form onSubmit={handleRedeem} className="space-y-4">
             <div>
@@ -883,11 +923,19 @@ function ProfileTab() {
             <button type="submit" className="gradient-orange text-white px-6 py-3 rounded-full font-syne font-semibold text-sm hover:opacity-90 active:scale-95 transition-all shadow-card">
               Save Changes
             </button>
-            {saved && (
-              <span className="flex items-center gap-2 text-brand-green font-medium text-sm animate-fade-up">
-                <CheckCircle className="w-4 h-4" /> Saved!
-              </span>
-            )}
+            <AnimatePresence>
+              {saved && (
+                <motion.span
+                  className="flex items-center gap-2 text-brand-green font-medium text-sm"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <CheckCircle className="w-4 h-4" /> Saved!
+                </motion.span>
+              )}
+            </AnimatePresence>
           </div>
         </form>
       </div>
@@ -938,7 +986,17 @@ export default function VendorPage() {
 
         {/* Main content — the ONLY thing that scrolls */}
         <main className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {CONTENT[activeTab]}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {CONTENT[activeTab]}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>
