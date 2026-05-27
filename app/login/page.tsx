@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Package, Eye, EyeOff, ArrowRight, BadgePercent, Bike, Smartphone } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
+import { findUserByEmail, nameFromEmail, registerUser } from '@/lib/auth'
 
 const BENEFITS = [
   { icon: BadgePercent, text: '5% cashback on every order'      },
@@ -12,7 +14,8 @@ const BENEFITS = [
 ]
 
 export default function LoginPage() {
-  const router = useRouter()
+  const router       = useRouter()
+  const { user, isLoaded, login } = useAuth()
 
   const [email,        setEmail]        = useState('')
   const [password,     setPassword]     = useState('')
@@ -20,6 +23,11 @@ export default function LoginPage() {
   const [remember,     setRemember]     = useState(false)
   const [loading,      setLoading]      = useState(false)
   const [error,        setError]        = useState('')
+
+  // Already signed in → go to menu
+  useEffect(() => {
+    if (isLoaded && user) router.replace('/menu')
+  }, [isLoaded, user, router])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -30,9 +38,22 @@ export default function LoginPage() {
     if (!/\S+@\S+\.\S+/.test(email)) return setError('Please enter a valid email address.')
 
     setLoading(true)
-    // Simulate auth request
-    await new Promise(r => setTimeout(r, 1400))
+    await new Promise(r => setTimeout(r, 1200))
     setLoading(false)
+
+    // Look up registered user; fall back to a fresh demo user
+    const stored = findUserByEmail(email.trim().toLowerCase())
+    const authUser = stored ?? {
+      name:      nameFromEmail(email),
+      email:     email.trim().toLowerCase(),
+      cashback:  1250,
+      createdAt: new Date().toISOString(),
+    }
+
+    // Ensure they're in the users list for future lookups
+    if (!stored) registerUser(authUser)
+
+    login(authUser)
     router.push('/menu')
   }
 

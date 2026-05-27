@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Syne, DM_Sans } from 'next/font/google'
 import './globals.css'
+import Providers from './providers'
 
 const syne = Syne({
   subsets: ['latin'],
@@ -55,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${syne.variable} ${dmSans.variable}`}>
       <body className="font-dm-sans bg-brand-bg text-brand-text antialiased">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

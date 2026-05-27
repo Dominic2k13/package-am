@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, type FormEvent, type ChangeEvent } from 'react'
+import { useState, useEffect, type FormEvent, type ChangeEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Package, Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
+import { registerUser } from '@/lib/auth'
 
 interface FormState {
   name:            string
@@ -54,6 +56,7 @@ function PasswordStrength({ password }: { password: string }) {
 
 export default function SignUpPage() {
   const router = useRouter()
+  const { user, isLoaded, login } = useAuth()
 
   const [form, setForm] = useState<FormState>({ name: '', email: '', phone: '', password: '', confirmPassword: '' })
   const [showPassword,        setShowPassword]        = useState(false)
@@ -62,6 +65,11 @@ export default function SignUpPage() {
   const [loading,             setLoading]             = useState(false)
   const [error,               setError]               = useState('')
   const [success,             setSuccess]             = useState(false)
+
+  // Already signed in → go to menu
+  useEffect(() => {
+    if (isLoaded && user) router.replace('/menu')
+  }, [isLoaded, user, router])
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }))
@@ -83,15 +91,26 @@ export default function SignUpPage() {
     if (!agreeTerms)                          return setError('Please agree to the Terms & Privacy Policy.')
 
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1600))
+    await new Promise(r => setTimeout(r, 1400))
     setLoading(false)
+
+    // Create and persist user, then auto-login
+    const newUser = {
+      name:      name.trim(),
+      email:     email.trim().toLowerCase(),
+      phone:     phone.trim(),
+      cashback:  500,                        // ₦500 welcome bonus
+      createdAt: new Date().toISOString(),
+    }
+    registerUser(newUser)
+    login(newUser)
     setSuccess(true)
   }
 
   if (success) {
     return (
       <div className="min-h-screen bg-brand-bg flex items-center justify-center p-6">
-        <div className="bg-white rounded-3xl shadow-card max-w-md w-full p-10 text-center animate-fade-up">
+        <div className="bg-white rounded-3xl shadow-card max-w-md w-full p-10 text-center">
           <div className="w-20 h-20 bg-brand-green/10 rounded-full flex items-center justify-center mx-auto mb-5">
             <CheckCircle className="w-10 h-10 text-brand-green" />
           </div>
@@ -107,15 +126,16 @@ export default function SignUpPage() {
             <span className="text-2xl shrink-0">💜</span>
             <div>
               <p className="text-brand-cashback font-semibold text-sm">Welcome Bonus!</p>
-              <p className="text-brand-cashback/70 text-xs">₦500 cashback added to your account</p>
+              <p className="text-brand-cashback/70 text-xs">₦500 cashback added to your wallet</p>
             </div>
           </div>
 
+          {/* Already logged in — go straight to ordering */}
           <button
-            onClick={() => router.push('/login')}
+            onClick={() => router.push('/menu')}
             className="w-full gradient-orange text-white py-3.5 rounded-full font-syne font-semibold hover:opacity-90 active:scale-95 transition-all"
           >
-            Sign In to Your Account
+            Start Ordering Now 🍽️
           </button>
           <Link href="/" className="mt-4 block text-sm text-brand-muted hover:text-brand-orange transition-colors">
             Go to Homepage
