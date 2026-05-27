@@ -2,22 +2,29 @@
 
 import { useState, useMemo, useCallback, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Search, X, CheckCircle } from 'lucide-react'
+import { Search, X, CheckCircle, MapPin, Phone, User } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import FoodCard from '@/components/FoodCard'
 import CartSidebar from '@/components/CartSidebar'
+import CheckoutModal, { type DeliveryDetails } from '@/components/CheckoutModal'
 import { StaggerGrid, StaggerItem } from '@/components/ui/StaggerGrid'
 import { FOOD_ITEMS, CATEGORIES } from '@/lib/data'
 import type { FoodItem, CartItem } from '@/types'
 
 // ── Order Success modal ────────────────────────────────────────
 function OrderSuccessModal({
-  orderId, earnedCashback, onClose,
-}: { orderId: string; earnedCashback: number; onClose: () => void }) {
+  orderId, earnedCashback, details, onClose,
+}: { orderId: string; earnedCashback: number; details: DeliveryDetails; onClose: () => void }) {
+  const isFriend   = details.orderFor === 'friend'
+  const recipientName    = isFriend ? details.friendName    : (details.myName || 'You')
+  const recipientPhone   = isFriend ? details.friendPhone   : details.myPhone
+  const recipientState   = isFriend ? details.friendState   : details.myState
+  const recipientAddress = isFriend ? details.friendAddress : details.myAddress
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[300] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[320] flex items-center justify-center p-4">
       <motion.div
         className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center"
         initial={{ opacity: 0, scale: 0.85, y: 20 }}
@@ -28,10 +35,15 @@ function OrderSuccessModal({
         <div className="w-16 h-16 bg-brand-green/10 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle className="w-8 h-8 text-brand-green" />
         </div>
-        <h2 className="font-syne font-extrabold text-brand-dark text-2xl mb-2">Order Placed! 🎉</h2>
-        <p className="text-brand-muted text-sm mb-6">Your food is being prepared and will arrive soon.</p>
+        <h2 className="font-syne font-extrabold text-brand-dark text-2xl mb-1">Order Placed! 🎉</h2>
+        <p className="text-brand-muted text-sm mb-5">
+          {isFriend
+            ? `Your gift order for ${details.friendName} is being prepared!`
+            : 'Your food is being prepared and will arrive soon.'}
+        </p>
 
-        <div className="bg-brand-bg rounded-2xl p-4 text-left mb-4 space-y-2 text-sm">
+        {/* Order details */}
+        <div className="bg-brand-bg rounded-2xl p-4 text-left mb-4 space-y-2.5 text-sm">
           <div className="flex justify-between">
             <span className="text-brand-muted">Order ID</span>
             <span className="font-semibold text-brand-dark">{orderId}</span>
@@ -39,6 +51,25 @@ function OrderSuccessModal({
           <div className="flex justify-between">
             <span className="text-brand-muted">Est. Delivery</span>
             <span className="font-semibold text-brand-dark">25–35 mins</span>
+          </div>
+          {isFriend && (
+            <div className="flex items-center gap-2 pt-1.5 border-t border-brand-border">
+              <User className="w-3.5 h-3.5 text-brand-muted shrink-0" />
+              <span className="text-brand-muted">Recipient</span>
+              <span className="font-semibold text-brand-dark ml-auto">{recipientName}</span>
+            </div>
+          )}
+          <div className="flex items-start gap-2">
+            <Phone className="w-3.5 h-3.5 text-brand-muted shrink-0 mt-0.5" />
+            <span className="text-brand-muted">Phone</span>
+            <span className="font-semibold text-brand-dark ml-auto">{recipientPhone}</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <MapPin className="w-3.5 h-3.5 text-brand-muted shrink-0 mt-0.5" />
+            <span className="text-brand-muted shrink-0">Address</span>
+            <span className="font-semibold text-brand-dark ml-auto text-right leading-snug">
+              {recipientAddress}, {recipientState}
+            </span>
           </div>
         </div>
 
@@ -84,6 +115,25 @@ function Toast({ message, onDone }: { message: string; onDone: () => void }) {
   )
 }
 
+// ── Location banner (reads localStorage after mount) ───────────
+function LocationBanner() {
+  const [state, setState] = useState('')
+  useEffect(() => {
+    const saved = localStorage.getItem('pa_location')
+    if (saved) setState(saved)
+  }, [])
+
+  if (!state) {
+    return <p className="text-brand-muted text-sm mb-5">Fresh from the best restaurants near you</p>
+  }
+  return (
+    <p className="text-brand-muted text-sm mb-5 flex items-center gap-1.5">
+      <MapPin className="w-3.5 h-3.5 text-brand-orange shrink-0" />
+      Showing restaurants in <span className="font-semibold text-brand-orange">{state}</span>
+    </p>
+  )
+}
+
 // ── Inner component (uses useSearchParams) ─────────────────────
 function MenuPageInner() {
   const searchParams  = useSearchParams()
@@ -94,7 +144,8 @@ function MenuPageInner() {
   const [cart,           setCart]           = useState<CartItem[]>([])
   const [cashback,       setCashback]       = useState(1250)
   const [cartOpen,       setCartOpen]       = useState(false)
-  const [successData,    setSuccessData]    = useState<{ orderId: string; cashback: number } | null>(null)
+  const [checkoutOpen,   setCheckoutOpen]   = useState(false)
+  const [successData,    setSuccessData]    = useState<{ orderId: string; cashback: number; details: DeliveryDetails } | null>(null)
   const [toast,          setToast]          = useState('')
 
   const filteredItems = useMemo(() => {
@@ -124,14 +175,21 @@ function MenuPageInner() {
     )
   }, [])
 
-  const checkout = useCallback(() => {
-    const subtotal     = cart.reduce((s, i) => s + i.price * i.quantity, 0)
-    const earned       = Math.floor(subtotal * 0.05)
-    const orderId      = `#PA-${String(Math.floor(Math.random() * 9000) + 1000)}`
+  // Opens checkout form (cart closes, checkout modal opens)
+  const openCheckout = useCallback(() => {
+    setCartOpen(false)
+    setCheckoutOpen(true)
+  }, [])
+
+  // Called when checkout form is submitted with delivery details
+  const confirmCheckout = useCallback((details: DeliveryDetails) => {
+    const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0)
+    const earned   = Math.floor(subtotal * 0.05)
+    const orderId  = `#PA-${String(Math.floor(Math.random() * 9000) + 1000)}`
     setCashback(c => c + earned)
     setCart([])
-    setCartOpen(false)
-    setSuccessData({ orderId, cashback: earned })
+    setCheckoutOpen(false)
+    setSuccessData({ orderId, cashback: earned, details })
   }, [cart])
 
   return (
@@ -143,7 +201,7 @@ function MenuPageInner() {
         <div className="bg-white border-b border-brand-border">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
             <h1 className="font-syne font-extrabold text-2xl sm:text-3xl text-brand-dark mb-1">🍽️ What Are You Craving?</h1>
-            <p className="text-brand-muted text-sm mb-5">Fresh from the best restaurants near you</p>
+            <LocationBanner />
 
             {/* Search */}
             <div className="relative max-w-lg">
@@ -244,7 +302,14 @@ function MenuPageInner() {
         cashback={cashback}
         onClose={() => setCartOpen(false)}
         onChangeQty={changeQty}
-        onCheckout={checkout}
+        onCheckout={openCheckout}
+      />
+
+      <CheckoutModal
+        open={checkoutOpen}
+        items={cart}
+        onClose={() => setCheckoutOpen(false)}
+        onConfirm={confirmCheckout}
       />
 
       <AnimatePresence>
@@ -253,6 +318,7 @@ function MenuPageInner() {
             key="success-modal"
             orderId={successData.orderId}
             earnedCashback={successData.cashback}
+            details={successData.details}
             onClose={() => setSuccessData(null)}
           />
         )}
