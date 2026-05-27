@@ -27,3 +27,9 @@ Thumbs.db
 
 # Vercel
 .vercel
+
+# PWA — generated at build time by next-pwa (Netlify rebuilds these)
+public/sw.js
+public/swe-worker-*.js
+public/workbox-*.js
+public/fallback-*.js
