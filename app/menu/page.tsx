@@ -11,6 +11,8 @@ import CartSidebar from '@/components/CartSidebar'
 import CheckoutModal, { type DeliveryDetails } from '@/components/CheckoutModal'
 import { StaggerGrid, StaggerItem } from '@/components/ui/StaggerGrid'
 import { FOOD_ITEMS, CATEGORIES } from '@/lib/data'
+import { useAuth } from '@/context/AuthContext'
+import { saveOrder } from '@/lib/orders'
 import type { FoodItem, CartItem } from '@/types'
 
 // ── Order Success modal ────────────────────────────────────────
@@ -138,15 +140,19 @@ function LocationBanner() {
 function MenuPageInner() {
   const searchParams  = useSearchParams()
   const initialCat    = searchParams.get('cat') ?? 'all'
+  const { user, refresh } = useAuth()
 
   const [activeCategory, setActiveCategory] = useState(initialCat)
   const [searchTerm,     setSearchTerm]     = useState('')
   const [cart,           setCart]           = useState<CartItem[]>([])
-  const [cashback,       setCashback]       = useState(1250)
+  const [guestCashback,  setGuestCashback]  = useState(0)   // fallback for guests
   const [cartOpen,       setCartOpen]       = useState(false)
   const [checkoutOpen,   setCheckoutOpen]   = useState(false)
   const [successData,    setSuccessData]    = useState<{ orderId: string; cashback: number; details: DeliveryDetails } | null>(null)
   const [toast,          setToast]          = useState('')
+
+  // Cashback to display in cart: prefer live auth value, else local guest counter
+  const displayCashback = user ? user.cashback : guestCashback
 
   const filteredItems = useMemo(() => {
     return FOOD_ITEMS.filter(item => {
@@ -183,18 +189,45 @@ function MenuPageInner() {
 
   // Called when checkout form is submitted with delivery details
   const confirmCheckout = useCallback((details: DeliveryDetails) => {
-    const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0)
-    const earned   = Math.floor(subtotal * 0.05)
-    const orderId  = `#PA-${String(Math.floor(Math.random() * 9000) + 1000)}`
-    setCashback(c => c + earned)
+    const subtotal     = cart.reduce((s, i) => s + i.price * i.quantity, 0)
+    const deliveryFee  = 500
+    const total        = subtotal + deliveryFee
+    const earned       = Math.floor(subtotal * 0.05)
+    const orderId      = `#PA-${String(Math.floor(Math.random() * 9000) + 1000)}`
+
+    // Update cashback: logged-in user gets persistent update, guest gets local counter
+    if (user) {
+      refresh({ cashback: (user.cashback || 0) + earned })
+    } else {
+      setGuestCashback(c => c + earned)
+    }
+
+    // Persist order to localStorage (for history page)
+    const isFriend = details.orderFor === 'friend'
+    saveOrder({
+      orderId,
+      items: cart.map(i => ({ name: i.name, quantity: i.quantity, price: i.price, image: i.image })),
+      subtotal,
+      deliveryFee,
+      total,
+      cashbackEarned:   earned,
+      orderFor:         details.orderFor,
+      recipientName:    isFriend ? details.friendName    : (details.myName || user?.name || ''),
+      recipientPhone:   isFriend ? details.friendPhone   : details.myPhone,
+      recipientState:   isFriend ? details.friendState   : details.myState,
+      recipientAddress: isFriend ? details.friendAddress : details.myAddress,
+      placedAt:         new Date().toISOString(),
+      userEmail:        user?.email,
+    })
+
     setCart([])
     setCheckoutOpen(false)
     setSuccessData({ orderId, cashback: earned, details })
-  }, [cart])
+  }, [cart, user, refresh])
 
   return (
     <>
-      <Navbar cartCount={cartCount} cashback={cashback} onCartOpen={() => setCartOpen(true)} />
+      <Navbar cartCount={cartCount} cashback={displayCashback} onCartOpen={() => setCartOpen(true)} />
 
       <main className="min-h-screen bg-brand-bg pb-16">
         {/* Header */}
@@ -299,7 +332,7 @@ function MenuPageInner() {
       <CartSidebar
         open={cartOpen}
         items={cart}
-        cashback={cashback}
+        cashback={displayCashback}
         onClose={() => setCartOpen(false)}
         onChangeQty={changeQty}
         onCheckout={openCheckout}
@@ -310,6 +343,7 @@ function MenuPageInner() {
         items={cart}
         onClose={() => setCheckoutOpen(false)}
         onConfirm={confirmCheckout}
+        prefill={{ name: user?.name, phone: user?.phone }}
       />
 
       <AnimatePresence>

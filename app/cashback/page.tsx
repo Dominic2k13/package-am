@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
   Wallet, Smartphone, Wifi, UtensilsCrossed, ArrowRight,
@@ -11,6 +11,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import AnimateIn from '@/components/ui/AnimateIn'
 import { StaggerGrid, StaggerItem } from '@/components/ui/StaggerGrid'
+import { useAuth } from '@/context/AuthContext'
 
 const CASHBACK_HISTORY = [
   { id: 1, label: 'Jollof Rice + Chicken',   amount: 225,  date: 'Today, 1:42 PM',     type: 'earn'  },
@@ -31,7 +32,10 @@ type RedeemType = typeof REDEEM_TYPES[number]['id']
 const QUICK_AMOUNTS = [200, 500, 1000]
 
 export default function CashbackPage() {
+  const { user, isLoaded, refresh } = useAuth()
+
   const [balance,     setBalance]     = useState(1250)
+  const [seeded,      setSeeded]      = useState(false)
   const [redeemType,  setRedeemType]  = useState<RedeemType>('airtime')
   const [phone,       setPhone]       = useState('')
   const [amount,      setAmount]      = useState('')
@@ -39,6 +43,14 @@ export default function CashbackPage() {
   const [success,     setSuccess]     = useState('')
   const [error,       setError]       = useState('')
   const [history,     setHistory]     = useState(CASHBACK_HISTORY)
+
+  // Seed balance from auth once loaded (avoids hydration mismatch)
+  useEffect(() => {
+    if (isLoaded && !seeded) {
+      if (user) setBalance(user.cashback)
+      setSeeded(true)
+    }
+  }, [isLoaded, user, seeded])
 
   const numAmount = parseInt(amount) || 0
 
@@ -57,7 +69,10 @@ export default function CashbackPage() {
     await new Promise(r => setTimeout(r, 1500))
     setLoading(false)
 
-    setBalance(b => b - numAmount)
+    const newBalance = balance - numAmount
+    setBalance(newBalance)
+    // Persist back to auth context so Navbar and other pages stay in sync
+    if (user) refresh({ cashback: newBalance })
     setHistory(h => [
       { id: Date.now(), label: `${REDEEM_TYPES.find(r => r.id === redeemType)!.label} Redemption`, amount: -numAmount, date: 'Just now', type: 'redeem' },
       ...h,

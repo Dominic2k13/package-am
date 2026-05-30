@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   ShoppingCart, Package, Menu, X, Wallet,
-  MapPin, ChevronDown, LogOut, User,
+  MapPin, ChevronDown, LogOut, User, ClipboardList,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
@@ -208,6 +208,15 @@ export default function Navbar({ cartCount = 0, cashback = 0, onCartOpen }: Navb
                           <span>Order Food</span>
                         </Link>
 
+                        <Link
+                          href="/orders"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-brand-text hover:bg-brand-bg hover:text-brand-orange transition-colors"
+                        >
+                          <ClipboardList className="w-4 h-4 shrink-0" />
+                          <span>My Orders</span>
+                        </Link>
+
                         <div className="border-t border-brand-border my-1.5" />
 
                         <button
@@ -286,6 +295,7 @@ export default function Navbar({ cartCount = 0, cashback = 0, onCartOpen }: Navb
                 { href: '/menu',          label: 'Menu'        },
                 { href: '/#how-it-works', label: 'How it Works'},
                 { href: '/cashback',      label: 'Cashback'    },
+                ...(user ? [{ href: '/orders', label: 'My Orders' }] : []),
               ].map(link => (
                 <Link
                   key={link.href}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, User, Users, Phone, MapPin, ChevronDown, ArrowLeft } from 'lucide-react'
@@ -27,6 +27,8 @@ interface CheckoutModalProps {
   items:     CartItem[]
   onClose:   () => void
   onConfirm: (details: DeliveryDetails) => void
+  /** Pre-fill name/phone from auth context for logged-in users */
+  prefill?:  { name?: string; phone?: string }
 }
 
 const ORDER_FOR_OPTIONS = [
@@ -206,9 +208,22 @@ function DeliveryForm({
 }
 
 // ── Main export ────────────────────────────────────────────────
-export default function CheckoutModal({ open, items, onClose, onConfirm }: CheckoutModalProps) {
+export default function CheckoutModal({ open, items, onClose, onConfirm, prefill }: CheckoutModalProps) {
   const [details, setDetails] = useState<DeliveryDetails>(BLANK)
   const [errors,  setErrors]  = useState<Errors>({})
+
+  // Reset form each time the modal opens, seeding with auth prefill
+  useEffect(() => {
+    if (open) {
+      setDetails({
+        ...BLANK,
+        myName:  prefill?.name  ?? '',
+        myPhone: prefill?.phone ?? '',
+      })
+      setErrors({})
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   const subtotal       = items.reduce((s, i) => s + i.price * i.quantity, 0)
   const deliveryFee    = 500

@@ -1,8 +1,10 @@
 'use client'
 
 import Image from 'next/image'
-import { X, Minus, Plus, UtensilsCrossed } from 'lucide-react'
+import Link from 'next/link'
+import { X, Minus, Plus, UtensilsCrossed, User, ArrowRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useAuth } from '@/context/AuthContext'
 import type { CartItem } from '@/types'
 
 interface CartSidebarProps {
@@ -17,6 +19,8 @@ interface CartSidebarProps {
 export default function CartSidebar({
   open, items, cashback, onClose, onChangeQty, onCheckout,
 }: CartSidebarProps) {
+  const { user } = useAuth()
+  const isLoggedIn     = !!user
   const subtotal       = items.reduce((s, i) => s + i.price * i.quantity, 0)
   const earnedCashback = Math.floor(subtotal * 0.05)
   const deliveryFee    = subtotal > 0 ? 500 : 0
@@ -142,7 +146,21 @@ export default function CartSidebar({
                   exit={{ opacity: 0, y: 16 }}
                   transition={{ duration: 0.22 }}
                 >
-                  {cashback > 0 && (
+                  {/* Guest nudge — sign in to save cashback */}
+                  {!isLoggedIn && (
+                    <Link
+                      href="/login"
+                      onClick={onClose}
+                      className="flex items-center gap-2.5 bg-brand-orange/8 hover:bg-brand-orange/12 border border-brand-orange/20 text-brand-orange px-4 py-3 rounded-xl text-xs font-semibold transition-colors group"
+                    >
+                      <User className="w-3.5 h-3.5 shrink-0" />
+                      <span className="flex-1">Sign in to save your cashback</span>
+                      <ArrowRight className="w-3.5 h-3.5 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+                  )}
+
+                  {/* Logged-in: show current cashback balance */}
+                  {isLoggedIn && cashback > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-brand-muted">Your cashback balance</span>
                       <span className="text-brand-cashback font-semibold">₦{cashback.toLocaleString()}</span>
