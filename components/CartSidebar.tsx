@@ -1,8 +1,8 @@
 'use client'
 
 import Image from 'next/image'
-import Link from 'next/link'
-import { X, Minus, Plus, UtensilsCrossed, User, ArrowRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { X, Minus, Plus, UtensilsCrossed, Package } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
 import type { CartItem } from '@/types'
@@ -16,14 +16,26 @@ interface CartSidebarProps {
   onCheckout: () => void
 }
 
+const CART_SAVE_KEY = 'pa_cart_save'
+
 export default function CartSidebar({
   open, items, cashback, onClose, onChangeQty, onCheckout,
 }: CartSidebarProps) {
-  const { user } = useAuth()
+  const router         = useRouter()
+  const { user }       = useAuth()
   const isLoggedIn     = !!user
   const subtotal       = items.reduce((s, i) => s + i.price * i.quantity, 0)
   const earnedCashback = Math.floor(subtotal * 0.05)
   const deliveryFee    = subtotal > 0 ? 500 : 0
+
+  /** Save cart then redirect to auth page — cart is restored after login */
+  function handleAuthRedirect(path: '/login' | '/signup') {
+    if (items.length > 0) {
+      localStorage.setItem(CART_SAVE_KEY, JSON.stringify(items))
+    }
+    onClose()
+    router.push(path)
+  }
 
   return (
     <AnimatePresence>
@@ -52,7 +64,9 @@ export default function CartSidebar({
               <div>
                 <h2 className="font-syne font-bold text-brand-dark text-lg">Your Cart</h2>
                 {items.length > 0 && (
-                  <p className="text-xs text-brand-muted mt-0.5">{items.reduce((s, i) => s + i.quantity, 0)} item{items.length !== 1 ? 's' : ''}</p>
+                  <p className="text-xs text-brand-muted mt-0.5">
+                    {items.reduce((s, i) => s + i.quantity, 0)} item{items.length !== 1 ? 's' : ''}
+                  </p>
                 )}
               </div>
               <motion.button
@@ -101,7 +115,9 @@ export default function CartSidebar({
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-brand-dark text-xs leading-tight truncate mb-1">{item.name}</p>
                         <p className="text-brand-orange font-bold text-sm">₦{(item.price * item.quantity).toLocaleString()}</p>
-                        <p className="text-brand-cashback text-xs mt-0.5">💜 +₦{Math.floor(item.price * item.quantity * 0.05)} back</p>
+                        <p className="text-brand-cashback text-xs mt-0.5">
+                          💜 +₦{Math.floor(item.price * item.quantity * 0.05)} back
+                        </p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <motion.button
@@ -146,32 +162,25 @@ export default function CartSidebar({
                   exit={{ opacity: 0, y: 16 }}
                   transition={{ duration: 0.22 }}
                 >
-                  {/* Guest nudge — sign in to save cashback */}
-                  {!isLoggedIn && (
-                    <Link
-                      href="/login"
-                      onClick={onClose}
-                      className="flex items-center gap-2.5 bg-brand-orange/8 hover:bg-brand-orange/12 border border-brand-orange/20 text-brand-orange px-4 py-3 rounded-xl text-xs font-semibold transition-colors group"
-                    >
-                      <User className="w-3.5 h-3.5 shrink-0" />
-                      <span className="flex-1">Sign in to save your cashback</span>
-                      <ArrowRight className="w-3.5 h-3.5 shrink-0 group-hover:translate-x-0.5 transition-transform" />
-                    </Link>
+                  {/* Logged-in: cashback balance + earn pill */}
+                  {isLoggedIn && (
+                    <>
+                      {cashback > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-brand-muted">Your cashback balance</span>
+                          <span className="text-brand-cashback font-semibold">₦{cashback.toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div className="bg-brand-cashback-light rounded-xl px-4 py-3 flex items-center gap-2">
+                        <span className="text-lg">💜</span>
+                        <p className="text-brand-cashback text-xs font-medium">
+                          You&apos;ll earn <strong>₦{earnedCashback.toLocaleString()}</strong> cashback on this order!
+                        </p>
+                      </div>
+                    </>
                   )}
 
-                  {/* Logged-in: show current cashback balance */}
-                  {isLoggedIn && cashback > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-brand-muted">Your cashback balance</span>
-                      <span className="text-brand-cashback font-semibold">₦{cashback.toLocaleString()}</span>
-                    </div>
-                  )}
-                  <div className="bg-brand-cashback-light rounded-xl px-4 py-3 flex items-center gap-2">
-                    <span className="text-lg">💜</span>
-                    <p className="text-brand-cashback text-xs font-medium">
-                      You&apos;ll earn <strong>₦{earnedCashback.toLocaleString()}</strong> cashback on this order!
-                    </p>
-                  </div>
+                  {/* Price breakdown (always visible) */}
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between text-brand-muted">
                       <span>Subtotal</span>
@@ -186,15 +195,55 @@ export default function CartSidebar({
                       <span className="text-brand-orange text-lg">₦{(subtotal + deliveryFee).toLocaleString()}</span>
                     </div>
                   </div>
-                  <motion.button
-                    onClick={onCheckout}
-                    className="w-full gradient-orange text-white py-3.5 rounded-full font-syne font-semibold text-sm shadow-card"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.97 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                  >
-                    Place Order
-                  </motion.button>
+
+                  {/* ── Auth gate (guests) OR checkout button (logged-in) ── */}
+                  {isLoggedIn ? (
+                    <motion.button
+                      onClick={onCheckout}
+                      className="w-full gradient-orange text-white py-3.5 rounded-full font-syne font-semibold text-sm shadow-card"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                    >
+                      Place Order
+                    </motion.button>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-brand-bg border border-brand-border rounded-2xl p-4 space-y-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 gradient-orange rounded-full flex items-center justify-center shrink-0">
+                          <Package className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-syne font-semibold text-brand-dark text-sm leading-snug">
+                            Sign in to place your order
+                          </p>
+                          <p className="text-brand-muted text-xs mt-0.5">
+                            Free account — get ₦500 welcome cashback!
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <motion.button
+                          onClick={() => handleAuthRedirect('/login')}
+                          className="py-3 border-2 border-brand-border text-brand-dark rounded-full text-sm font-semibold hover:border-brand-orange hover:text-brand-orange transition-colors"
+                          whileTap={{ scale: 0.97 }}
+                        >
+                          Sign In
+                        </motion.button>
+                        <motion.button
+                          onClick={() => handleAuthRedirect('/signup')}
+                          className="py-3 gradient-orange text-white rounded-full text-sm font-semibold hover:opacity-90 transition-opacity shadow-card"
+                          whileTap={{ scale: 0.97 }}
+                        >
+                          Create Account
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

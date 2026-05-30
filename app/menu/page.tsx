@@ -154,6 +154,22 @@ function MenuPageInner() {
   // Cashback to display in cart: prefer live auth value, else local guest counter
   const displayCashback = user ? user.cashback : guestCashback
 
+  // Restore cart that was saved before the user was redirected to login/signup
+  useEffect(() => {
+    if (!user) return
+    try {
+      const saved = localStorage.getItem('pa_cart_save')
+      if (!saved) return
+      const savedItems: CartItem[] = JSON.parse(saved)
+      if (savedItems.length > 0) {
+        setCart(savedItems)
+        setCartOpen(true)
+        setToast('🛒 Your cart has been restored!')
+      }
+    } catch { /* ignore malformed data */ }
+    localStorage.removeItem('pa_cart_save')
+  }, [user])
+
   const filteredItems = useMemo(() => {
     return FOOD_ITEMS.filter(item => {
       const catMatch  = activeCategory === 'all' || item.category === activeCategory
