@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
   MapPin, Phone, Clock, CheckCircle, ArrowRight,
-  UtensilsCrossed, Package, ShoppingBag,
+  UtensilsCrossed, Package, ShoppingBag, ChevronDown, Users,
 } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { useAuth } from '@/context/AuthContext'
@@ -18,16 +18,22 @@ function relativeTime(iso: string): string {
   const mins  = Math.floor(diff / 60_000)
   const hrs   = Math.floor(diff / 3_600_000)
   const days  = Math.floor(diff / 86_400_000)
-  if (mins < 1)    return 'Just now'
-  if (mins < 60)   return `${mins}m ago`
-  if (hrs  < 24)   return `${hrs}h ago`
-  if (days === 1)  return 'Yesterday'
+  if (mins < 1)   return 'Just now'
+  if (mins < 60)  return `${mins}m ago`
+  if (hrs  < 24)  return `${hrs}h ago`
+  if (days === 1) return 'Yesterday'
   return new Date(iso).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-// ── Order card ─────────────────────────────────────────────────
+// ── Order card — collapsed by default, expand on click ─────────
 function OrderCard({ order, index }: { order: StoredOrder; index: number }) {
-  const isFriend = order.orderFor === 'friend'
+  const [expanded, setExpanded] = useState(false)
+  const isFriend  = order.orderFor === 'friend'
+  const itemCount = order.items.reduce((s, i) => s + i.quantity, 0)
+  // First item name as a preview (e.g. "Jollof Rice + 2 more")
+  const preview   = itemCount > 1
+    ? `${order.items[0].name} + ${itemCount - 1} more`
+    : order.items[0]?.name ?? ''
 
   return (
     <motion.div
@@ -36,69 +42,142 @@ function OrderCard({ order, index }: { order: StoredOrder; index: number }) {
       transition={{ delay: index * 0.07, type: 'spring', stiffness: 280, damping: 26 }}
       className="bg-white rounded-2xl shadow-card overflow-hidden"
     >
-      {/* Card header */}
-      <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-brand-border">
-        <div>
-          <div className="flex items-center gap-2 mb-0.5">
-            <Package className="w-3.5 h-3.5 text-brand-orange" />
+      {/* ── Summary row — always visible, clickable ───────── */}
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full text-left px-5 py-4 flex items-center gap-3.5 hover:bg-brand-bg/60 active:bg-brand-bg transition-colors"
+        aria-expanded={expanded}
+      >
+        {/* Brand icon */}
+        <div className="w-10 h-10 gradient-orange rounded-xl flex items-center justify-center shrink-0">
+          <Package className="w-4 h-4 text-white" />
+        </div>
+
+        {/* Order ID + preview */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="font-syne font-bold text-brand-dark text-sm">{order.orderId}</span>
+            {isFriend && (
+              <span className="text-[10px] font-semibold text-brand-cashback bg-brand-cashback-light px-2 py-0.5 rounded-full shrink-0">
+                Gift
+              </span>
+            )}
           </div>
-          <p className="text-brand-muted text-xs flex items-center gap-1">
+          <p className="text-brand-muted text-xs mt-0.5 truncate">{preview}</p>
+          <p className="text-brand-muted text-[11px] flex items-center gap-1 mt-0.5">
             <Clock className="w-3 h-3" />
             {relativeTime(order.placedAt)}
+            <span className="mx-0.5">·</span>
+            {itemCount} item{itemCount !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-1.5">
-          <div className="flex items-center gap-1.5 bg-green-50 text-green-600 px-3 py-1 rounded-full text-xs font-semibold">
+
+        {/* Status + total */}
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 bg-green-50 text-green-600 px-2.5 py-1 rounded-full text-[11px] font-semibold">
             <CheckCircle className="w-3 h-3" />
             Delivered
           </div>
-          {isFriend && (
-            <span className="text-[10px] font-semibold text-brand-cashback bg-brand-cashback-light px-2 py-0.5 rounded-full">
-              Gift order
-            </span>
-          )}
+          <span className="font-syne font-bold text-brand-orange text-sm">
+            ₦{order.total.toLocaleString()}
+          </span>
         </div>
-      </div>
 
-      {/* Items list */}
-      <div className="px-5 py-4 space-y-2 border-b border-brand-border">
-        {order.items.map((item, j) => (
-          <div key={j} className="flex items-center justify-between text-sm">
-            <span className="text-brand-muted">
-              {item.name}
-              <span className="ml-1 font-semibold text-brand-text">×{item.quantity}</span>
-            </span>
-            <span className="text-brand-dark font-medium">₦{(item.price * item.quantity).toLocaleString()}</span>
-          </div>
-        ))}
-      </div>
+        {/* Chevron */}
+        <motion.div
+          animate={{ rotate: expanded ? 180 : 0 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+          className="text-brand-muted shrink-0"
+        >
+          <ChevronDown className="w-4 h-4" />
+        </motion.div>
+      </button>
 
-      {/* Delivery info */}
-      <div className="px-5 py-3 bg-brand-bg space-y-1.5 border-b border-brand-border">
-        <div className="flex items-center gap-2 text-xs text-brand-muted">
-          <Phone className="w-3.5 h-3.5 text-brand-orange shrink-0" />
-          <span className="flex-1">{order.recipientPhone}</span>
-          {isFriend && (
-            <span className="font-semibold text-brand-cashback">for {order.recipientName}</span>
-          )}
-        </div>
-        <div className="flex items-start gap-2 text-xs text-brand-muted">
-          <MapPin className="w-3.5 h-3.5 text-brand-orange shrink-0 mt-0.5" />
-          <span>{order.recipientAddress}, {order.recipientState}</span>
-        </div>
-      </div>
+      {/* ── Expandable details ────────────────────────────── */}
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            key="details"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.24, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-brand-border">
 
-      {/* Footer: totals + cashback */}
-      <div className="flex items-center justify-between px-5 py-3.5">
-        <div className="text-sm">
-          <span className="text-brand-muted">Total </span>
-          <span className="font-syne font-bold text-brand-orange">₦{order.total.toLocaleString()}</span>
-        </div>
-        <div className="flex items-center gap-1.5 bg-brand-cashback-light text-brand-cashback px-3 py-1.5 rounded-full text-xs font-semibold">
-          💜 +₦{order.cashbackEarned.toLocaleString()} earned
-        </div>
-      </div>
+              {/* Items breakdown */}
+              <div className="px-5 pt-4 pb-3">
+                <p className="text-[10px] font-bold text-brand-muted uppercase tracking-widest mb-3">
+                  Order Items
+                </p>
+                <div className="space-y-2">
+                  {order.items.map((item, j) => (
+                    <div key={j} className="flex items-center justify-between text-sm">
+                      <span className="text-brand-text">
+                        {item.name}
+                        <span className="text-brand-muted ml-1.5">×{item.quantity}</span>
+                      </span>
+                      <span className="font-semibold text-brand-dark">
+                        ₦{(item.price * item.quantity).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Price summary */}
+                <div className="mt-3 pt-3 border-t border-brand-border/60 space-y-1.5 text-sm">
+                  <div className="flex justify-between text-brand-muted">
+                    <span>Delivery fee</span>
+                    <span>₦{order.deliveryFee.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between font-syne font-bold text-brand-dark pt-1">
+                    <span>Total paid</span>
+                    <span className="text-brand-orange">₦{order.total.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery details */}
+              <div className="mx-5 mb-4 bg-brand-bg rounded-xl p-4 space-y-2.5">
+                <p className="text-[10px] font-bold text-brand-muted uppercase tracking-widest mb-1">
+                  Delivery Details
+                </p>
+
+                {isFriend && (
+                  <div className="flex items-center gap-2.5 text-sm">
+                    <Users className="w-3.5 h-3.5 text-brand-orange shrink-0" />
+                    <span className="text-brand-muted flex-1">Recipient</span>
+                    <span className="font-semibold text-brand-dark">{order.recipientName}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2.5 text-sm">
+                  <Phone className="w-3.5 h-3.5 text-brand-orange shrink-0" />
+                  <span className="text-brand-muted flex-1">Phone</span>
+                  <span className="font-semibold text-brand-dark">{order.recipientPhone}</span>
+                </div>
+
+                <div className="flex items-start gap-2.5 text-sm">
+                  <MapPin className="w-3.5 h-3.5 text-brand-orange shrink-0 mt-0.5" />
+                  <span className="text-brand-muted shrink-0">Address</span>
+                  <span className="font-semibold text-brand-dark ml-auto text-right leading-snug">
+                    {order.recipientAddress}, {order.recipientState}
+                  </span>
+                </div>
+              </div>
+
+              {/* Cashback earned */}
+              <div className="mx-5 mb-5 bg-brand-cashback-light rounded-xl px-4 py-3 flex items-center gap-3">
+                <span className="text-xl">💜</span>
+                <p className="text-brand-cashback text-sm font-semibold">
+                  ₦{order.cashbackEarned.toLocaleString()} cashback earned on this order
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
@@ -109,7 +188,6 @@ export default function OrdersPage() {
   const [orders,  setOrders]  = useState<StoredOrder[]>([])
   const [mounted, setMounted] = useState(false)
 
-  // Load from localStorage after mount (avoids SSR mismatch)
   useEffect(() => {
     setMounted(true)
     const loaded = user
@@ -121,7 +199,6 @@ export default function OrdersPage() {
   const totalCashback = orders.reduce((s, o) => s + o.cashbackEarned, 0)
   const totalSpent    = orders.reduce((s, o) => s + o.total, 0)
 
-  // Show skeleton until both auth and localStorage are ready
   if (!isLoaded || !mounted) {
     return (
       <>
@@ -153,11 +230,10 @@ export default function OrdersPage() {
                 <p className="text-brand-muted text-sm">
                   {orders.length === 0
                     ? 'No orders yet'
-                    : `${orders.length} order${orders.length !== 1 ? 's' : ''} placed`}
+                    : `${orders.length} order${orders.length !== 1 ? 's' : ''} · tap any to see details`}
                 </p>
               </div>
 
-              {/* Quick stats (only when there are orders) */}
               {orders.length > 0 && (
                 <div className="hidden sm:flex gap-3 shrink-0">
                   <div className="text-right">
@@ -173,7 +249,6 @@ export default function OrdersPage() {
               )}
             </div>
 
-            {/* Mobile quick stats */}
             {orders.length > 0 && (
               <div className="sm:hidden mt-4 grid grid-cols-2 gap-3">
                 <div className="bg-brand-bg rounded-xl px-4 py-3">
@@ -190,10 +265,8 @@ export default function OrdersPage() {
         </div>
 
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-
           {orders.length === 0 ? (
 
-            /* ── Empty state ──────────────────────────────── */
             <motion.div
               className="flex flex-col items-center justify-center py-24 text-center gap-4"
               initial={{ opacity: 0, y: 20 }}
@@ -230,19 +303,16 @@ export default function OrdersPage() {
             </motion.div>
 
           ) : (
-
-            /* ── Order list ───────────────────────────────── */
-            <div className="space-y-4">
+            <div className="space-y-3">
               {orders.map((order, i) => (
                 <OrderCard key={order.orderId} order={order} index={i} />
               ))}
 
-              {/* CTA to order again */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: orders.length * 0.07 + 0.1 }}
-                className="gradient-orange rounded-2xl p-6 flex items-center justify-between gap-4"
+                className="gradient-orange rounded-2xl p-6 flex items-center justify-between gap-4 mt-2"
               >
                 <div className="text-white">
                   <p className="font-syne font-bold text-base">Ready for another round?</p>

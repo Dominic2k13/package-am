@@ -288,17 +288,10 @@ export default function CheckoutModal({ open, items, onClose, onConfirm, prefill
     </div>
   )
 
-  const ConfirmBtn = () => (
-    <motion.button
-      onClick={handleConfirm}
-      className="w-full gradient-orange text-white py-3.5 rounded-full font-syne font-semibold text-sm shadow-card"
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-    >
-      Confirm Order · ₦{total.toLocaleString()}
-    </motion.button>
-  )
+  // NOTE: ConfirmBtn is NOT defined as an inner component — doing so causes
+  // React to unmount/remount the motion.button on every render (new function
+  // reference = new component type), which swallows the click mid-press.
+  // The button JSX is inlined directly at both usage sites below.
 
   // ── Who-is-this-for toggle ───────────────────────────────────
   const OrderForToggle = () => (
@@ -464,12 +457,22 @@ export default function CheckoutModal({ open, items, onClose, onConfirm, prefill
                   <div className="md:hidden border-t border-brand-border px-4 py-4 space-y-3 shrink-0 bg-white">
                     <PriceSummary />
                     <CashbackPill />
-                    <ConfirmBtn />
+                    <button
+                      onClick={handleConfirm}
+                      className="w-full gradient-orange text-white py-3.5 rounded-full font-syne font-semibold text-sm shadow-card hover:opacity-90 active:scale-[0.98] transition-all"
+                    >
+                      Confirm Order · ₦{total.toLocaleString()}
+                    </button>
                   </div>
 
                   {/* Desktop footer: just the button (totals on left) */}
                   <div className="hidden md:block border-t border-brand-border px-6 py-4 shrink-0 bg-white">
-                    <ConfirmBtn />
+                    <button
+                      onClick={handleConfirm}
+                      className="w-full gradient-orange text-white py-3.5 rounded-full font-syne font-semibold text-sm shadow-card hover:opacity-90 active:scale-[0.98] transition-all"
+                    >
+                      Confirm Order · ₦{total.toLocaleString()}
+                    </button>
                   </div>
                 </div>
               </div>
