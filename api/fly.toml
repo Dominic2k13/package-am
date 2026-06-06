@@ -1,0 +1,29 @@
+# Fly.io deployment config for Package-Am Go API
+# Deploy: fly launch (first time) / fly deploy (updates)
+
+app = "package-am-api"
+primary_region = "jnb"   # Johannesburg — closest to Nigeria
+
+[build]
+  # Fly.io auto-detects Go from go.mod and builds a binary
+
+[env]
+  PORT    = "8080"
+  ENV     = "production"
+
+[http_service]
+  internal_port       = 8080
+  force_https         = true
+  auto_stop_machines  = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type       = "connections"
+    hard_limit = 200
+    soft_limit = 150
+
+[[vm]]
+  memory      = "256mb"
+  cpu_kind    = "shared"
+  cpus        = 1

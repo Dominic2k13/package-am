@@ -28,6 +28,10 @@ Thumbs.db
 # Vercel
 .vercel
 
+# Go API
+api/.env
+api/bin/
+
 # PWA — generated at build time by next-pwa (Netlify rebuilds these)
 public/sw.js
 public/swe-worker-*.js

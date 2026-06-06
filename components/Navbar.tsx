@@ -99,9 +99,10 @@ export default function Navbar({ cartCount = 0, cashback = 0, onCartOpen }: Navb
 
           {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-7 text-sm font-medium text-brand-muted">
-            <Link href="/menu"          className="hover:text-brand-orange transition-colors">Menu</Link>
-            <Link href="/#how-it-works" className="hover:text-brand-orange transition-colors">How it Works</Link>
-            <Link href="/cashback"      className="hover:text-brand-orange transition-colors">Cashback</Link>
+            <Link href="/menu"           className="hover:text-brand-orange transition-colors">Menu</Link>
+            <Link href="/#how-it-works"  className="hover:text-brand-orange transition-colors">How it Works</Link>
+            <Link href="/cashback"       className="hover:text-brand-orange transition-colors">Cashback</Link>
+            <Link href="/vendor/signup"  className="hover:text-brand-orange transition-colors">Sell on Package-Am</Link>
           </div>
 
           {/* Right actions */}
@@ -291,9 +292,10 @@ export default function Navbar({ cartCount = 0, cashback = 0, onCartOpen }: Navb
               <div className="h-px bg-brand-border my-1" />
 
               {[
-                { href: '/menu',          label: 'Menu'        },
-                { href: '/#how-it-works', label: 'How it Works'},
-                { href: '/cashback',      label: 'Cashback'    },
+                { href: '/menu',           label: 'Menu'              },
+                { href: '/#how-it-works',  label: 'How it Works'     },
+                { href: '/cashback',       label: 'Cashback'          },
+                { href: '/vendor/signup',  label: 'Sell on Package-Am'},
                 ...(user ? [{ href: '/orders', label: 'My Orders' }] : []),
               ].map(link => (
                 <Link
