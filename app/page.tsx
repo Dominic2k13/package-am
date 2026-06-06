@@ -54,16 +54,16 @@ export default function HomePage() {
 
             <div className="flex flex-col xs:flex-row flex-wrap gap-3 mb-10">
               <Link
-                href="/menu"
-                className="inline-flex items-center gap-2 gradient-orange text-white px-6 py-3.5 rounded-full font-syne font-semibold text-sm hover:opacity-90 active:scale-95 transition-all shadow-card"
+                href="/signup"
+                className="inline-flex items-center gap-2 gradient-orange text-white px-7 py-4 rounded-full font-syne font-bold text-base hover:opacity-90 active:scale-95 transition-all shadow-card"
               >
-                Order Now <ArrowRight className="w-4 h-4" />
+                Get Started Free <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                href="/cashback"
-                className="inline-flex items-center gap-2 bg-brand-cashback-light text-brand-cashback px-6 py-3.5 rounded-full font-syne font-semibold text-sm hover:bg-brand-cashback/20 transition-colors"
+                href="/menu"
+                className="inline-flex items-center gap-2 border-2 border-brand-border text-brand-text px-7 py-4 rounded-full font-syne font-semibold text-base hover:border-brand-orange hover:text-brand-orange transition-colors"
               >
-                💜 My Cashback
+                Browse Menu
               </Link>
             </div>
 
@@ -82,8 +82,8 @@ export default function HomePage() {
             <div className="relative flex justify-center lg:justify-end animate-hero-float px-12 sm:px-16 lg:px-0">
               <div className="relative w-64 h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full overflow-hidden border-4 border-white shadow-[0_24px_64px_rgba(255,90,31,0.18)]">
                 <Image
-                  src="https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=640&q=85"
-                  alt="Delicious Jollof Rice"
+                  src="/gineer/pizzza.jpg"
+                  alt="Gineer Special Mix Pizza"
                   fill
                   priority
                   sizes="320px"
@@ -96,16 +96,16 @@ export default function HomePage() {
                 </div>
                 <div>
                   <p className="text-[10px] text-brand-muted">Order placed!</p>
-                  <p className="text-xs font-semibold text-brand-dark">Jollof Rice 🎉</p>
+                  <p className="text-xs font-semibold text-brand-dark">Gineer Pizza 🎉</p>
                 </div>
               </div>
               <div className="hidden sm:flex absolute -right-2 bottom-1/4 bg-white rounded-2xl shadow-card px-4 py-3 items-center gap-3 min-w-[150px]">
-                <div className="w-9 h-9 gradient-cashback rounded-full flex items-center justify-center shrink-0">
-                  <span className="text-white text-xs font-bold">5%</span>
+                <div className="w-9 h-9 gradient-orange rounded-full flex items-center justify-center shrink-0">
+                  <span className="text-white text-xs font-bold">🚀</span>
                 </div>
                 <div>
-                  <p className="text-[10px] text-brand-muted">Cashback earned</p>
-                  <p className="text-xs font-semibold text-brand-cashback">₦125 credited</p>
+                  <p className="text-[10px] text-brand-muted">Delivering now</p>
+                  <p className="text-xs font-semibold text-brand-dark">25–35 mins ⚡</p>
                 </div>
               </div>
             </div>
@@ -226,9 +226,6 @@ export default function HomePage() {
                         {item.badge}
                       </span>
                     )}
-                    <span className="absolute top-2 right-2 gradient-cashback text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                      💜 5%
-                    </span>
                   </div>
                   <div className="p-3 flex flex-col flex-1">
                     <p className="font-syne font-semibold text-brand-dark text-xs leading-snug mb-1 line-clamp-2">{item.name}</p>

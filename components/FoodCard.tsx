@@ -37,9 +37,6 @@ export default function FoodCard({ item, onAdd }: FoodCardProps) {
             {item.badge}
           </span>
         )}
-        <span className="absolute top-3 right-3 gradient-cashback text-white text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm z-10">
-          💜 5% Back
-        </span>
       </div>
 
       <div className="p-4 flex flex-col flex-1">

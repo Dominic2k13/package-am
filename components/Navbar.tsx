@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   ShoppingCart, Package, Menu, X, Wallet,
-  MapPin, ChevronDown, LogOut, User, ClipboardList,
+  MapPin, ChevronDown, LogOut, ClipboardList,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '@/context/AuthContext'
@@ -232,13 +232,12 @@ export default function Navbar({ cartCount = 0, cashback = 0, onCartOpen }: Navb
                 </AnimatePresence>
               </div>
             ) : (
-              /* ── Signed-out: Sign In button */
+              /* ── Signed-out: Get Started button */
               <Link
-                href="/login"
-                className="hidden md:inline-flex items-center gap-1.5 bg-brand-dark text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-brand-text transition-colors"
+                href="/signup"
+                className="hidden md:inline-flex items-center gap-1.5 gradient-orange text-white px-5 py-2 rounded-full text-sm font-semibold hover:opacity-90 active:scale-95 transition-all shadow-sm"
               >
-                <User className="w-3.5 h-3.5" />
-                Sign In
+                Get Started
               </Link>
             )}
 
@@ -318,18 +317,18 @@ export default function Navbar({ cartCount = 0, cashback = 0, onCartOpen }: Navb
                 ) : (
                   <>
                     <Link
-                      href="/login"
-                      className="py-3 bg-brand-orange text-white rounded-full text-center font-semibold text-sm hover:opacity-90 transition-colors"
+                      href="/signup"
+                      className="py-3 gradient-orange text-white rounded-full text-center font-semibold text-sm hover:opacity-90 transition-colors shadow-sm"
                       onClick={() => setMobileOpen(false)}
                     >
-                      Sign In
+                      Get Started Free
                     </Link>
                     <Link
-                      href="/signup"
+                      href="/login"
                       className="py-3 border border-brand-border text-brand-text rounded-full text-center font-semibold text-sm hover:border-brand-orange hover:text-brand-orange transition-colors"
                       onClick={() => setMobileOpen(false)}
                     >
-                      Create Account
+                      Sign In
                     </Link>
                   </>
                 )}
