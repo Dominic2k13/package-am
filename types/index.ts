@@ -1,12 +1,34 @@
+export interface Vendor {
+  id:           number
+  name:         string
+  emoji:        string       // used as avatar when no image available
+  tagline:      string
+  description:  string
+  address:      string
+  city:         string
+  state:        string
+  rating:       number
+  reviewCount:  number
+  deliveryTime: string
+  minOrder:     number
+  categories:   string[]
+  isOpen:       boolean
+  badge?:       string
+  phone:        string
+  instagram?:   string
+  tiktok?:      string
+}
+
 export interface FoodItem {
-  id: number
-  name: string
+  id:       number
+  name:     string
   category: string
-  price: number
-  rating: number
-  time: string
-  image: string
-  badge?: string
+  vendorId?: number     // links item to a specific vendor
+  price:    number
+  rating:   number
+  time:     string
+  image:    string
+  badge?:   string
   cashback: number
 }
 

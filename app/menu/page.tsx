@@ -11,6 +11,7 @@ import CartSidebar from '@/components/CartSidebar'
 import CheckoutModal, { type DeliveryDetails } from '@/components/CheckoutModal'
 import { StaggerGrid, StaggerItem } from '@/components/ui/StaggerGrid'
 import { FOOD_ITEMS, CATEGORIES } from '@/lib/data'
+import { VENDORS } from '@/lib/vendors'
 import { useAuth } from '@/context/AuthContext'
 import { saveOrder } from '@/lib/orders'
 import type { FoodItem, CartItem } from '@/types'
@@ -143,6 +144,7 @@ function MenuPageInner() {
   const { user, refresh } = useAuth()
 
   const [activeCategory, setActiveCategory] = useState(initialCat)
+  const [activeVendor,   setActiveVendor]   = useState<number | null>(null)
   const [searchTerm,     setSearchTerm]     = useState('')
   const [cart,           setCart]           = useState<CartItem[]>([])
   const [guestCashback,  setGuestCashback]  = useState(0)   // fallback for guests
@@ -172,11 +174,12 @@ function MenuPageInner() {
 
   const filteredItems = useMemo(() => {
     return FOOD_ITEMS.filter(item => {
-      const catMatch  = activeCategory === 'all' || item.category === activeCategory
-      const termMatch = item.name.toLowerCase().includes(searchTerm.toLowerCase())
-      return catMatch && termMatch
+      const catMatch    = activeCategory === 'all' || item.category === activeCategory
+      const termMatch   = item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const vendorMatch = activeVendor === null || item.vendorId === activeVendor
+      return catMatch && termMatch && vendorMatch
     })
-  }, [activeCategory, searchTerm])
+  }, [activeCategory, searchTerm, activeVendor])
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
 
@@ -290,8 +293,103 @@ function MenuPageInner() {
           </div>
         </div>
 
+        {/* ── Restaurants section ─────────────────────────── */}
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-6">
+          <p className="text-xs font-bold text-brand-muted uppercase tracking-widest mb-3">🏪 Restaurants</p>
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
+
+            {/* "All Restaurants" chip */}
+            <button
+              onClick={() => setActiveVendor(null)}
+              className={`shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full border-2 text-sm font-semibold transition-all ${
+                activeVendor === null
+                  ? 'border-brand-orange bg-brand-orange/5 text-brand-orange'
+                  : 'border-brand-border text-brand-muted hover:border-brand-orange hover:text-brand-orange'
+              }`}
+            >
+              🍽️ All Restaurants
+            </button>
+
+            {/* Vendor cards */}
+            {VENDORS.map(vendor => (
+              <button
+                key={vendor.id}
+                onClick={() => setActiveVendor(activeVendor === vendor.id ? null : vendor.id)}
+                className={`shrink-0 flex items-center gap-3 px-4 py-2.5 rounded-2xl border-2 text-left transition-all ${
+                  activeVendor === vendor.id
+                    ? 'border-brand-orange bg-brand-orange/5'
+                    : 'border-brand-border bg-white hover:border-brand-orange/60'
+                }`}
+              >
+                {/* Logo avatar */}
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0 transition-all ${
+                  activeVendor === vendor.id ? 'gradient-orange' : 'bg-brand-bg'
+                }`}>
+                  {vendor.emoji}
+                </div>
+                <div className="min-w-0">
+                  <p className={`font-syne font-bold text-sm leading-tight ${
+                    activeVendor === vendor.id ? 'text-brand-orange' : 'text-brand-dark'
+                  }`}>
+                    {vendor.name}
+                  </p>
+                  <p className="text-brand-muted text-[11px] flex items-center gap-1 mt-0.5">
+                    <span>⭐ {vendor.rating}</span>
+                    <span>·</span>
+                    <span>{vendor.deliveryTime}</span>
+                    <span>·</span>
+                    <span className={vendor.isOpen ? 'text-green-500 font-medium' : 'text-red-400 font-medium'}>
+                      {vendor.isOpen ? 'Open' : 'Closed'}
+                    </span>
+                  </p>
+                </div>
+                {vendor.badge && (
+                  <span className="shrink-0 text-[10px] font-bold bg-brand-orange/10 text-brand-orange px-2 py-0.5 rounded-full">
+                    {vendor.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Active vendor info banner */}
+          <AnimatePresence>
+            {activeVendor !== null && (() => {
+              const v = VENDORS.find(v => v.id === activeVendor)
+              if (!v) return null
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                  className="mt-3 bg-white border border-brand-border rounded-2xl px-4 py-3.5 flex items-center gap-4"
+                >
+                  <div className="w-10 h-10 gradient-orange rounded-xl flex items-center justify-center text-xl shrink-0">
+                    {v.emoji}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-syne font-bold text-brand-dark text-sm">{v.name}</p>
+                    <p className="text-brand-muted text-xs truncate">{v.address}, {v.city}</p>
+                  </div>
+                  <div className="hidden sm:flex gap-3 text-xs text-brand-muted shrink-0">
+                    <span>📞 {v.phone}</span>
+                    {v.instagram && <span>📸 {v.instagram}</span>}
+                  </div>
+                  <button
+                    onClick={() => setActiveVendor(null)}
+                    className="shrink-0 text-brand-muted hover:text-brand-orange transition-colors text-xs font-medium"
+                  >
+                    ✕ Clear
+                  </button>
+                </motion.div>
+              )
+            })()}
+          </AnimatePresence>
+        </div>
+
         {/* Grid */}
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 mt-6">
           <AnimatePresence mode="wait">
             {filteredItems.length === 0 ? (
               <motion.div
