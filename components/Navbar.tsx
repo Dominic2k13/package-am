@@ -103,6 +103,7 @@ export default function Navbar({ cartCount = 0, cashback = 0, onCartOpen }: Navb
             <Link href="/#how-it-works"  className="hover:text-brand-orange transition-colors">How it Works</Link>
             <Link href="/cashback"       className="hover:text-brand-orange transition-colors">Cashback</Link>
             <Link href="/vendor/signup"  className="hover:text-brand-orange transition-colors">Sell on Package-Am</Link>
+            <Link href="/admin"          className="hover:text-brand-orange transition-colors text-xs opacity-50 hover:opacity-100">Admin</Link>
           </div>
 
           {/* Right actions */}
@@ -296,6 +297,7 @@ export default function Navbar({ cartCount = 0, cashback = 0, onCartOpen }: Navb
                 { href: '/#how-it-works',  label: 'How it Works'     },
                 { href: '/cashback',       label: 'Cashback'          },
                 { href: '/vendor/signup',  label: 'Sell on Package-Am'},
+                { href: '/admin',          label: 'Admin Panel'       },
                 ...(user ? [{ href: '/orders', label: 'My Orders' }] : []),
               ].map(link => (
                 <Link
