@@ -1067,6 +1067,7 @@ export default function VendorPage() {
   const [statsLoading,    setStatsLoading]    = useState(false)
   const [ordersLoading,   setOrdersLoading]   = useState(false)
   const [pendingApproval, setPendingApproval] = useState(false)
+  const [authError,       setAuthError]       = useState<string | null>(null)
 
   // Hydrate token on mount
   useEffect(() => {
@@ -1079,19 +1080,23 @@ export default function VendorPage() {
     if (!token) return
 
     setPendingApproval(false)
+    setAuthError(null)
     setStatsLoading(true)
     api.vendor.stats(token)
-      .then(setStats)
+      .then(d => { setStats(d); setAuthError(null) })
       .catch(err => {
-        if (err?.status === 403) { setPendingApproval(true); return }
-        if (err?.status === 401) handleLogout()
+        const status = (err as { status?: number })?.status
+        if (status === 403) { setPendingApproval(true); return }
+        // 401 = token invalid/expired — show a message but don't silently kick out
+        if (status === 401) { setAuthError('Your session has expired. Please sign in again.'); return }
+        // Network / 5xx errors — just show nothing, don't kick out
       })
       .finally(() => setStatsLoading(false))
 
     setOrdersLoading(true)
     api.vendor.orders(token)
       .then(setOrders)
-      .catch(() => { /* orders will just be empty for pending vendors */ })
+      .catch(() => { /* ignore, show empty */ })
       .finally(() => setOrdersLoading(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
@@ -1106,9 +1111,31 @@ export default function VendorPage() {
     setStats(null)
     setOrders([])
     setPendingApproval(false)
+    setAuthError(null)
   }
 
   if (!token) return <LoginScreen onLogin={handleLogin} />
+
+  // Session expired — show a clear message with sign-in button (not a silent redirect)
+  if (authError) return (
+    <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4">
+      <AnimateIn direction="up">
+        <div className="bg-white rounded-3xl shadow-card border border-brand-border p-8 w-full max-w-sm text-center">
+          <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
+            <LogOut className="w-8 h-8 text-red-400" />
+          </div>
+          <h2 className="font-syne font-extrabold text-2xl text-brand-dark mb-2">Session Expired</h2>
+          <p className="text-brand-muted text-sm leading-relaxed mb-6">{authError}</p>
+          <button
+            onClick={handleLogout}
+            className="w-full gradient-orange text-white py-3.5 rounded-full font-syne font-semibold text-sm hover:opacity-90 transition-all shadow-card"
+          >
+            Sign In Again
+          </button>
+        </div>
+      </AnimateIn>
+    </div>
+  )
 
   if (pendingApproval) return (
     <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4">
