@@ -80,9 +80,9 @@ func Login(jwtSecret string) gin.HandlerFunc {
 
 		var user models.User
 		err := db.Pool.QueryRow(context.Background(),
-			`SELECT id, name, email, password_hash, cashback_balance, created_at
+			`SELECT id, name, email, password_hash, cashback_balance, role, created_at
 			 FROM users WHERE email = $1`, req.Email,
-		).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.CashbackBalance, &user.CreatedAt)
+		).Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.CashbackBalance, &user.Role, &user.CreatedAt)
 		if err != nil {
 			// Return same error for unknown email & wrong password (prevent enumeration)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
