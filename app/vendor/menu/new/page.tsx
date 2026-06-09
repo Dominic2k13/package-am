@@ -36,7 +36,7 @@ export default function NewMenuItemPage() {
         image: form.image, badge: form.badge || undefined,
       })
       setDone(true)
-      setTimeout(() => router.push('/vendor/dashboard'), 1500)
+      setTimeout(() => router.push('/vendor'), 1500)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create item')
     } finally { setLoading(false) }
@@ -46,7 +46,7 @@ export default function NewMenuItemPage() {
     <div className="min-h-screen bg-brand-bg">
       <header className="bg-white border-b border-brand-border px-4 py-4">
         <div className="max-w-lg mx-auto flex items-center gap-3">
-          <Link href="/vendor/dashboard" className="w-8 h-8 rounded-lg flex items-center justify-center text-brand-muted hover:bg-brand-bg transition-colors">
+          <Link href="/vendor" className="w-8 h-8 rounded-lg flex items-center justify-center text-brand-muted hover:bg-brand-bg transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="flex items-center gap-2">
@@ -127,7 +127,7 @@ export default function NewMenuItemPage() {
               )}
 
               <div className="flex gap-3 pt-2">
-                <Link href="/vendor/dashboard"
+                <Link href="/vendor"
                   className="flex-1 py-3 border border-brand-border rounded-full text-center text-sm font-semibold text-brand-muted hover:border-brand-orange hover:text-brand-orange transition-colors">
                   Cancel
                 </Link>
