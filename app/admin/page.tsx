@@ -8,44 +8,17 @@ import {
   ChevronDown, ChevronUp, MapPin, Phone, Tag, Eye, EyeOff,
   LayoutDashboard, Bell,
 } from 'lucide-react'
+import {
+  api, type AdminVendorRow, type AdminUserRow, type AdminOrderRow, type AdminStats,
+} from '@/lib/api'
 
-// ── Admin credentials ──────────────────────────────────────────
-const ADMIN_EMAIL    = process.env.NEXT_PUBLIC_ADMIN_EMAIL    || 'admin@package-am.com'
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'PackageAm@2024'
-const SESSION_KEY    = 'pa_admin_session'
+const ADMIN_TOKEN_KEY = 'pa_admin_token'
 
 const fmt   = (n: number) => `₦${(n || 0).toLocaleString()}`
 const fmtDt = (iso: string) => {
   try { return new Date(iso).toLocaleDateString('en-NG', { day:'numeric', month:'short', year:'2-digit' }) }
   catch { return '—' }
 }
-
-// ── LocalStorage types ─────────────────────────────────────────
-interface StoredUser {
-  id: string; name: string; email: string
-  cashback: number; createdAt: string
-}
-interface StoredOrder {
-  orderId: string; items: { name: string; quantity: number; price: number; image: string }[]
-  subtotal: number; deliveryFee: number; total: number
-  cashbackEarned: number; orderFor: string
-  recipientName: string; recipientPhone: string
-  recipientState: string; recipientAddress: string
-  placedAt: string; userEmail?: string
-}
-interface VendorApp {
-  id: string; businessName: string; ownerName: string; email: string
-  phone: string; address: string; city: string; state: string
-  categories: string[]; description: string; emoji: string; tagline: string
-  appliedAt: string; status: 'pending' | 'approved' | 'rejected'
-  rejectionReason?: string
-}
-
-// ── LocalStorage helpers ───────────────────────────────────────
-function loadUsers():      StoredUser[]  { try { return JSON.parse(localStorage.getItem('pa_users')       || '[]') } catch { return [] } }
-function loadOrders():     StoredOrder[] { try { return JSON.parse(localStorage.getItem('pa_orders')      || '[]') } catch { return [] } }
-function loadVendorApps(): VendorApp[]   { try { return JSON.parse(localStorage.getItem('pa_vendor_apps') || '[]') } catch { return [] } }
-function saveVendorApps(apps: VendorApp[]) { localStorage.setItem('pa_vendor_apps', JSON.stringify(apps)) }
 
 // ── Stat card ─────────────────────────────────────────────────
 function StatCard({ label, value, icon: Icon, sub, accent = false }: {
@@ -67,8 +40,8 @@ function StatCard({ label, value, icon: Icon, sub, accent = false }: {
 
 // ── Vendor application card ────────────────────────────────────
 function VendorAppCard({ app, onReview }: {
-  app: VendorApp
-  onReview: (id: string, approved: boolean, reason?: string) => void
+  app: AdminVendorRow
+  onReview: (id: number, approved: boolean, reason?: string) => void
 }) {
   const [expanded, setExpanded]     = useState(false)
   const [showReject, setShowReject] = useState(false)
@@ -86,12 +59,12 @@ function VendorAppCard({ app, onReview }: {
         <span className="text-xl sm:text-2xl shrink-0">{app.emoji || '🍽️'}</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-semibold text-white text-sm sm:text-base truncate">{app.businessName}</p>
+            <p className="font-semibold text-white text-sm sm:text-base truncate">{app.name}</p>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border capitalize shrink-0 ${statusColor}`}>
               {app.status}
             </span>
           </div>
-          <p className="text-xs text-gray-500 truncate mt-0.5">{app.ownerName} · {app.email}</p>
+          <p className="text-xs text-gray-500 truncate mt-0.5">{app.ownerName} · {app.ownerEmail}</p>
         </div>
         <div className="text-gray-600 shrink-0">
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -116,7 +89,7 @@ function VendorAppCard({ app, onReview }: {
                 </div>
                 <div className="flex items-start gap-2 text-gray-400 sm:col-span-2">
                   <Tag className="w-4 h-4 shrink-0 mt-0.5 text-brand-orange" />
-                  <span className="text-xs sm:text-sm">{app.categories.join(', ')}</span>
+                  <span className="text-xs sm:text-sm">{(app.categories || []).join(', ')}</span>
                 </div>
               </div>
 
@@ -186,65 +159,94 @@ function VendorAppCard({ app, onReview }: {
 
 // ── Main admin page ────────────────────────────────────────────
 export default function AdminPage() {
-  const [authed, setAuthed]               = useState(false)
+  const [adminToken, setAdminToken]       = useState<string | null>(null)
   const [email, setEmail]                 = useState('')
   const [password, setPassword]           = useState('')
   const [showPass, setShowPass]           = useState(false)
   const [loginErr, setLoginErr]           = useState('')
+  const [loginLoading, setLoginLoading]   = useState(false)
   const [tab, setTab]                     = useState<'overview' | 'vendors' | 'users' | 'orders'>('overview')
   const [vendorFilter, setVendorFilter]   = useState<string>('')
+  const [dataLoading, setDataLoading]     = useState(false)
 
-  const [users, setUsers]           = useState<StoredUser[]>([])
-  const [orders, setOrders]         = useState<StoredOrder[]>([])
-  const [vendorApps, setVendorApps] = useState<VendorApp[]>([])
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null)
+  const [vendors, setVendors]       = useState<AdminVendorRow[]>([])
+  const [users, setUsers]           = useState<AdminUserRow[]>([])
+  const [orders, setOrders]         = useState<AdminOrderRow[]>([])
 
   useEffect(() => {
-    if (localStorage.getItem(SESSION_KEY) === 'true') {
-      setAuthed(true)
-      loadData()
-    }
+    const stored = localStorage.getItem(ADMIN_TOKEN_KEY)
+    if (stored) { setAdminToken(stored); loadData(stored) }
   }, [])
 
-  function loadData() {
-    setUsers(loadUsers())
-    setOrders(loadOrders())
-    setVendorApps(loadVendorApps())
+  async function loadData(token: string) {
+    setDataLoading(true)
+    try {
+      const [stats, vens, usrs, ords] = await Promise.all([
+        api.admin.stats(token),
+        api.admin.vendors(token),
+        api.admin.users(token),
+        api.admin.orders(token),
+      ])
+      setAdminStats(stats)
+      setVendors(vens)
+      setUsers(usrs)
+      setOrders(ords)
+    } catch (err: unknown) {
+      if ((err as { status?: number })?.status === 401) handleLogout()
+    } finally {
+      setDataLoading(false)
+    }
   }
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      localStorage.setItem(SESSION_KEY, 'true')
-      setAuthed(true)
-      loadData()
-    } else {
-      setLoginErr('Incorrect email or password')
+    setLoginErr('')
+    setLoginLoading(true)
+    try {
+      const { token, user } = await api.auth.login({ email, password })
+      if (user.role !== 'admin') {
+        setLoginErr('This account does not have admin access.')
+        return
+      }
+      localStorage.setItem(ADMIN_TOKEN_KEY, token)
+      setAdminToken(token)
+      loadData(token)
+    } catch (err: unknown) {
+      setLoginErr(err instanceof Error ? err.message : 'Login failed')
+    } finally {
+      setLoginLoading(false)
     }
   }
 
   function handleLogout() {
-    localStorage.removeItem(SESSION_KEY)
-    setAuthed(false)
+    localStorage.removeItem(ADMIN_TOKEN_KEY)
+    setAdminToken(null)
+    setAdminStats(null)
+    setVendors([])
+    setUsers([])
+    setOrders([])
     setEmail(''); setPassword('')
   }
 
-  function handleReview(id: string, approved: boolean, reason?: string) {
-    const updated = vendorApps.map(a =>
-      a.id === id
-        ? { ...a, status: (approved ? 'approved' : 'rejected') as VendorApp['status'], rejectionReason: reason }
-        : a
-    )
-    setVendorApps(updated)
-    saveVendorApps(updated)
+  async function handleReview(id: number, approved: boolean, reason?: string) {
+    if (!adminToken) return
+    try {
+      await api.admin.reviewVendor(adminToken, id, approved, reason)
+      // Reload vendors after review
+      const updated = await api.admin.vendors(adminToken)
+      setVendors(updated)
+      // Update stats pending count
+      const stats = await api.admin.stats(adminToken)
+      setAdminStats(stats)
+    } catch (err) {
+      console.error('Review failed', err)
+    }
   }
 
-  // ── Stats ───────────────────────────────────────────────────
-  const totalRevenue  = orders.reduce((s, o) => s + o.total, 0)
-  const totalCashback = orders.reduce((s, o) => s + o.cashbackEarned, 0)
-  const todayOrders   = orders.filter(o => new Date(o.placedAt).toDateString() === new Date().toDateString())
-  const todayRevenue  = todayOrders.reduce((s, o) => s + o.total, 0)
-  const pendingCount  = vendorApps.filter(a => a.status === 'pending').length
-  const filteredApps  = vendorFilter ? vendorApps.filter(a => a.status === vendorFilter) : vendorApps
+  // ── Derived values ──────────────────────────────────────────
+  const pendingCount  = adminStats?.pendingVendors ?? 0
+  const filteredVends = vendorFilter ? vendors.filter(v => v.status === vendorFilter) : vendors
 
   const TABS = [
     { id: 'overview', label: 'Overview',   shortLabel: 'Overview', icon: LayoutDashboard },
@@ -254,7 +256,7 @@ export default function AdminPage() {
   ] as const
 
   // ── Login screen ────────────────────────────────────────────
-  if (!authed) {
+  if (!adminToken) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
         <motion.div
@@ -263,7 +265,6 @@ export default function AdminPage() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', stiffness: 280, damping: 24 }}
         >
-          {/* Logo */}
           <div className="flex items-center gap-3 mb-7">
             <div className="w-10 h-10 gradient-orange rounded-xl flex items-center justify-center shadow-sm shrink-0">
               <Package className="w-5 h-5 text-white" />
@@ -313,10 +314,10 @@ export default function AdminPage() {
             </AnimatePresence>
 
             <button
-              type="submit"
-              className="w-full gradient-orange text-white py-3.5 rounded-xl font-syne font-semibold text-sm hover:opacity-90 active:scale-[0.98] transition-all shadow-sm mt-1"
+              type="submit" disabled={loginLoading}
+              className="w-full gradient-orange text-white py-3.5 rounded-xl font-syne font-semibold text-sm hover:opacity-90 active:scale-[0.98] transition-all shadow-sm mt-1 disabled:opacity-50"
             >
-              Sign In to Admin
+              {loginLoading ? 'Signing in…' : 'Sign In to Admin'}
             </button>
           </form>
 
@@ -333,7 +334,6 @@ export default function AdminPage() {
       {/* ── Top bar ── */}
       <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-3 sm:px-4 h-13 sm:h-14 flex items-center gap-2 sm:gap-3 min-h-[52px]">
-          {/* Logo */}
           <div className="w-7 h-7 sm:w-8 sm:h-8 gradient-orange rounded-xl flex items-center justify-center shrink-0">
             <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
           </div>
@@ -344,7 +344,6 @@ export default function AdminPage() {
           </span>
 
           <div className="ml-auto flex items-center gap-1.5 sm:gap-3 shrink-0">
-            {/* Pending badge (mobile shortcut) */}
             {pendingCount > 0 && (
               <button
                 onClick={() => setTab('vendors')}
@@ -355,11 +354,12 @@ export default function AdminPage() {
               </button>
             )}
             <button
-              onClick={() => loadData()}
+              onClick={() => adminToken && loadData(adminToken)}
+              disabled={dataLoading}
               className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:bg-gray-800 transition-colors"
               title="Refresh"
             >
-              <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${dataLoading ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={handleLogout}
@@ -405,7 +405,6 @@ export default function AdminPage() {
         {/* ══ OVERVIEW ══════════════════════════════════════════ */}
         {tab === 'overview' && (
           <>
-            {/* Pending alert */}
             {pendingCount > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
@@ -416,9 +415,7 @@ export default function AdminPage() {
                   <p className="font-semibold text-yellow-300 text-xs sm:text-sm">
                     {pendingCount} vendor application{pendingCount > 1 ? 's' : ''} waiting for review
                   </p>
-                  <p className="text-[10px] sm:text-xs text-yellow-400/60 mt-0.5">
-                    Review them in the Vendors tab
-                  </p>
+                  <p className="text-[10px] sm:text-xs text-yellow-400/60 mt-0.5">Review them in the Vendors tab</p>
                 </div>
                 <button
                   onClick={() => setTab('vendors')}
@@ -429,76 +426,50 @@ export default function AdminPage() {
               </motion.div>
             )}
 
-            {/* Stats row 1 */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-              <StatCard label="Today's Revenue" value={fmt(todayRevenue)}           icon={TrendingUp}  accent sub={`${todayOrders.length} orders today`} />
-              <StatCard label="Total Revenue"   value={fmt(totalRevenue)}            icon={TrendingUp}  sub="all time" />
-              <StatCard label="Total Users"     value={users.length.toString()}      icon={Users}       sub="registered accounts" />
-              <StatCard label="Total Orders"    value={orders.length.toString()}     icon={ShoppingBag} sub="all time" />
+              <StatCard label="Today's Revenue" value={fmt(adminStats?.todayRevenue ?? 0)}    icon={TrendingUp}  accent sub={`${adminStats?.todayOrders ?? 0} orders today`} />
+              <StatCard label="Total Revenue"   value={fmt(adminStats?.totalRevenue ?? 0)}    icon={TrendingUp}  sub="all time" />
+              <StatCard label="Total Users"     value={String(adminStats?.totalUsers ?? 0)}   icon={Users}       sub="registered accounts" />
+              <StatCard label="Total Orders"    value={String(adminStats?.totalOrders ?? 0)}  icon={ShoppingBag} sub="all time" />
             </div>
-            {/* Stats row 2 */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-              <StatCard label="Cashback Paid"   value={fmt(totalCashback)}           icon={TrendingUp}  sub="total earned by users" />
-              <StatCard label="Vendor Apps"     value={vendorApps.length.toString()} icon={Store}       sub={`${pendingCount} pending`} />
-              <StatCard label="Avg Order"       value={orders.length ? fmt(Math.round(totalRevenue / orders.length)) : '—'} icon={ShoppingBag} />
-              <StatCard label="Active Today"    value={todayOrders.length.toString()} icon={Clock}      sub="orders today" />
+              <StatCard label="Cashback Paid"   value={fmt(adminStats?.totalCashbackPaid ?? 0)} icon={TrendingUp}  sub="total earned by users" />
+              <StatCard label="Total Vendors"   value={String(adminStats?.totalVendors ?? 0)}   icon={Store}       sub={`${pendingCount} pending`} />
+              <StatCard label="Avg Order"       value={adminStats && adminStats.totalOrders > 0 ? fmt(Math.round(adminStats.totalRevenue / adminStats.totalOrders)) : '—'} icon={ShoppingBag} />
+              <StatCard label="Active Today"    value={String(adminStats?.todayOrders ?? 0)}    icon={Clock}       sub="orders today" />
             </div>
 
             {/* Recent orders */}
             <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
               <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-gray-800 flex items-center justify-between">
                 <h2 className="font-syne font-bold text-white text-sm sm:text-base">Recent Orders</h2>
-                <button onClick={() => setTab('orders')} className="text-xs text-brand-orange font-semibold hover:underline">
-                  View all
-                </button>
+                <button onClick={() => setTab('orders')} className="text-xs text-brand-orange font-semibold hover:underline">View all</button>
               </div>
-
               {orders.length === 0 ? (
                 <p className="text-gray-600 text-sm text-center py-10">No orders yet</p>
               ) : (
-                <>
-                  {/* Mobile: cards */}
-                  <div className="sm:hidden divide-y divide-gray-800/60">
-                    {orders.slice(0, 6).map((o, i) => (
-                      <div key={i} className="px-4 py-3 flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-mono text-[10px] text-gray-500">#{o.orderId.slice(0,8).toUpperCase()}</p>
-                          <p className="font-medium text-white text-sm truncate mt-0.5">{o.recipientName}</p>
-                          <p className="text-[10px] text-gray-500 truncate mt-0.5">
-                            {o.items.map(it => it.name).join(', ').slice(0, 35)}{o.items.length > 1 ? '…' : ''}
-                          </p>
-                        </div>
-                        <div className="shrink-0 text-right">
-                          <p className="font-bold text-brand-orange text-sm">{fmt(o.total)}</p>
-                          <p className="text-[10px] text-gray-600 mt-0.5">{fmtDt(o.placedAt)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Desktop: table */}
-                  <div className="hidden sm:block overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-left text-xs text-gray-500 border-b border-gray-800">
-                          <th className="px-5 py-3 font-semibold">Order</th>
-                          <th className="px-5 py-3 font-semibold">Customer</th>
-                          <th className="px-5 py-3 font-semibold">Items</th>
-                          <th className="px-5 py-3 font-semibold text-right">Total</th>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-gray-500 border-b border-gray-800">
+                        <th className="px-5 py-3 font-semibold">Order</th>
+                        <th className="px-5 py-3 font-semibold">Customer</th>
+                        <th className="px-5 py-3 font-semibold">Recipient</th>
+                        <th className="px-5 py-3 font-semibold text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.slice(0, 6).map((o, i) => (
+                        <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                          <td className="px-5 py-3 font-mono text-xs text-gray-400">#{o.id.slice(0,8).toUpperCase()}</td>
+                          <td className="px-5 py-3 text-gray-400 text-xs">{o.customerName}</td>
+                          <td className="px-5 py-3 text-white">{o.recipientName}</td>
+                          <td className="px-5 py-3 text-right font-bold text-brand-orange">{fmt(o.total)}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {orders.slice(0, 6).map((o, i) => (
-                          <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                            <td className="px-5 py-3 font-mono text-xs text-gray-400">#{o.orderId.slice(0,8).toUpperCase()}</td>
-                            <td className="px-5 py-3 text-white">{o.recipientName}</td>
-                            <td className="px-5 py-3 text-gray-400 text-xs">{o.items.map(it => it.name).join(', ').slice(0,40)}{o.items.length > 1 ? '…' : ''}</td>
-                            <td className="px-5 py-3 text-right font-bold text-brand-orange">{fmt(o.total)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </>
@@ -507,7 +478,6 @@ export default function AdminPage() {
         {/* ══ VENDOR APPLICATIONS ═══════════════════════════════ */}
         {tab === 'vendors' && (
           <div className="space-y-3 sm:space-y-4">
-            {/* Filter chips */}
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
               {['', 'pending', 'approved', 'rejected'].map(s => (
                 <button
@@ -526,10 +496,10 @@ export default function AdminPage() {
             </div>
 
             <div className="space-y-3">
-              {filteredApps.map(app => (
-                <VendorAppCard key={app.id} app={app} onReview={handleReview} />
+              {filteredVends.map(v => (
+                <VendorAppCard key={v.id} app={v} onReview={handleReview} />
               ))}
-              {filteredApps.length === 0 && (
+              {filteredVends.length === 0 && (
                 <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 sm:p-12 text-center">
                   <Store className="w-8 h-8 sm:w-10 sm:h-10 text-gray-700 mx-auto mb-3" />
                   <p className="text-gray-600 text-sm">
@@ -554,35 +524,32 @@ export default function AdminPage() {
               <>
                 {/* Mobile: user cards */}
                 <div className="sm:hidden space-y-2.5">
-                  {users.map((u, i) => {
-                    const userOrders = orders.filter(o => o.userEmail === u.email)
-                    const spent      = userOrders.reduce((s, o) => s + o.total, 0)
-                    return (
-                      <div key={i} className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
-                        <div className="flex items-center justify-between gap-3 mb-3">
-                          <div className="min-w-0">
-                            <p className="font-semibold text-white text-sm truncate">{u.name}</p>
-                            <p className="text-xs text-gray-500 truncate mt-0.5">{u.email}</p>
-                          </div>
-                          <span className="font-bold text-brand-orange text-sm shrink-0">{fmt(u.cashback)}</span>
+                  {users.map((u, i) => (
+                    <div key={i} className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-white text-sm truncate">{u.name}</p>
+                          <p className="text-xs text-gray-500 truncate mt-0.5">{u.email}</p>
+                          <p className="text-[10px] text-gray-600 mt-0.5 capitalize">{u.role}</p>
                         </div>
-                        <div className="grid grid-cols-3 gap-2 pt-2.5 border-t border-gray-800">
-                          <div className="text-center">
-                            <p className="text-[10px] text-gray-500 mb-0.5">Orders</p>
-                            <p className="font-semibold text-white text-sm">{userOrders.length}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-[10px] text-gray-500 mb-0.5">Spent</p>
-                            <p className="font-semibold text-white text-sm">{fmt(spent)}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-[10px] text-gray-500 mb-0.5">Joined</p>
-                            <p className="font-semibold text-white text-sm">{fmtDt(u.createdAt)}</p>
-                          </div>
+                        <span className="font-bold text-brand-orange text-sm shrink-0">{fmt(u.cashbackBalance)}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 pt-2.5 border-t border-gray-800">
+                        <div className="text-center">
+                          <p className="text-[10px] text-gray-500 mb-0.5">Orders</p>
+                          <p className="font-semibold text-white text-sm">{u.totalOrders}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[10px] text-gray-500 mb-0.5">Spent</p>
+                          <p className="font-semibold text-white text-sm">{fmt(u.totalSpent)}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[10px] text-gray-500 mb-0.5">Joined</p>
+                          <p className="font-semibold text-white text-sm">{fmtDt(u.createdAt)}</p>
                         </div>
                       </div>
-                    )
-                  })}
+                    </div>
+                  ))}
                 </div>
 
                 {/* Desktop: table */}
@@ -593,6 +560,7 @@ export default function AdminPage() {
                         <tr className="text-left text-xs text-gray-500 bg-gray-800/60">
                           <th className="px-5 py-3.5 font-semibold">Name</th>
                           <th className="px-5 py-3.5 font-semibold">Email</th>
+                          <th className="px-5 py-3.5 font-semibold">Role</th>
                           <th className="px-5 py-3.5 font-semibold">Cashback</th>
                           <th className="px-5 py-3.5 font-semibold">Orders</th>
                           <th className="px-5 py-3.5 font-semibold">Spent</th>
@@ -600,20 +568,17 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {users.map((u, i) => {
-                          const userOrders = orders.filter(o => o.userEmail === u.email)
-                          const spent      = userOrders.reduce((s, o) => s + o.total, 0)
-                          return (
-                            <tr key={i} className="border-t border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                              <td className="px-5 py-3.5 font-medium text-white">{u.name}</td>
-                              <td className="px-5 py-3.5 text-gray-400 text-xs">{u.email}</td>
-                              <td className="px-5 py-3.5 font-semibold text-brand-orange">{fmt(u.cashback)}</td>
-                              <td className="px-5 py-3.5 text-gray-300">{userOrders.length}</td>
-                              <td className="px-5 py-3.5 text-gray-300">{fmt(spent)}</td>
-                              <td className="px-5 py-3.5 text-gray-600 text-xs">{fmtDt(u.createdAt)}</td>
-                            </tr>
-                          )
-                        })}
+                        {users.map((u, i) => (
+                          <tr key={i} className="border-t border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                            <td className="px-5 py-3.5 font-medium text-white">{u.name}</td>
+                            <td className="px-5 py-3.5 text-gray-400 text-xs">{u.email}</td>
+                            <td className="px-5 py-3.5 text-gray-400 text-xs capitalize">{u.role}</td>
+                            <td className="px-5 py-3.5 font-semibold text-brand-orange">{fmt(u.cashbackBalance)}</td>
+                            <td className="px-5 py-3.5 text-gray-300">{u.totalOrders}</td>
+                            <td className="px-5 py-3.5 text-gray-300">{fmt(u.totalSpent)}</td>
+                            <td className="px-5 py-3.5 text-gray-600 text-xs">{fmtDt(u.createdAt)}</td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -639,23 +604,21 @@ export default function AdminPage() {
                     <div key={i} className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
                       <div className="flex items-start justify-between gap-3 mb-2.5">
                         <div className="min-w-0">
-                          <p className="font-mono text-[10px] text-gray-500">#{o.orderId.slice(0,8).toUpperCase()}</p>
+                          <p className="font-mono text-[10px] text-gray-500">#{o.id.slice(0,8).toUpperCase()}</p>
                           <p className="font-semibold text-white text-sm mt-0.5">{o.recipientName}</p>
-                          <p className="text-[10px] text-gray-500 mt-0.5">{o.recipientState}</p>
+                          <p className="text-[10px] text-gray-500 mt-0.5">{o.customerName}</p>
                         </div>
                         <div className="shrink-0 text-right">
                           <p className="font-bold text-brand-orange">{fmt(o.total)}</p>
                           <p className="text-[10px] text-gray-600 mt-0.5">{fmtDt(o.placedAt)}</p>
                         </div>
                       </div>
-                      <p className="text-xs text-gray-500 bg-gray-800 rounded-lg px-3 py-2 truncate">
-                        {o.items.map(it => `${it.name} ×${it.quantity}`).join(', ')}
-                      </p>
-                      {o.cashbackEarned > 0 && (
-                        <p className="text-xs text-green-400 font-semibold mt-2">
-                          Cashback: +{fmt(o.cashbackEarned)}
-                        </p>
-                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500 capitalize bg-gray-800 px-2.5 py-1 rounded-full">{o.status}</span>
+                        {o.cashbackEarned > 0 && (
+                          <p className="text-xs text-green-400 font-semibold">Cashback: +{fmt(o.cashbackEarned)}</p>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -667,9 +630,9 @@ export default function AdminPage() {
                       <thead>
                         <tr className="text-left text-xs text-gray-500 bg-gray-800/60">
                           <th className="px-5 py-3.5 font-semibold">Order ID</th>
+                          <th className="px-5 py-3.5 font-semibold">Customer</th>
                           <th className="px-5 py-3.5 font-semibold">Recipient</th>
-                          <th className="px-5 py-3.5 font-semibold">State</th>
-                          <th className="px-5 py-3.5 font-semibold">Items</th>
+                          <th className="px-5 py-3.5 font-semibold">Status</th>
                           <th className="px-5 py-3.5 font-semibold">Cashback</th>
                           <th className="px-5 py-3.5 font-semibold text-right">Total</th>
                           <th className="px-5 py-3.5 font-semibold">Date</th>
@@ -678,12 +641,10 @@ export default function AdminPage() {
                       <tbody>
                         {orders.map((o, i) => (
                           <tr key={i} className="border-t border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                            <td className="px-5 py-3.5 font-mono text-xs text-gray-500">#{o.orderId.slice(0,8).toUpperCase()}</td>
+                            <td className="px-5 py-3.5 font-mono text-xs text-gray-500">#{o.id.slice(0,8).toUpperCase()}</td>
+                            <td className="px-5 py-3.5 text-gray-400 text-xs">{o.customerName}</td>
                             <td className="px-5 py-3.5 text-white font-medium">{o.recipientName}</td>
-                            <td className="px-5 py-3.5 text-gray-400 text-xs">{o.recipientState}</td>
-                            <td className="px-5 py-3.5 text-gray-400 text-xs max-w-[180px] truncate">
-                              {o.items.map(it => `${it.name} ×${it.quantity}`).join(', ')}
-                            </td>
+                            <td className="px-5 py-3.5 text-gray-400 text-xs capitalize">{o.status}</td>
                             <td className="px-5 py-3.5 text-green-400 font-semibold">{fmt(o.cashbackEarned)}</td>
                             <td className="px-5 py-3.5 text-right font-bold text-brand-orange">{fmt(o.total)}</td>
                             <td className="px-5 py-3.5 text-gray-600 text-xs">{fmtDt(o.placedAt)}</td>

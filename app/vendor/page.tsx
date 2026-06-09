@@ -1058,14 +1058,15 @@ function ProfileTab() {
 
 // ── Main export ────────────────────────────────────────────────
 export default function VendorPage() {
-  const [token,        setTokenState]   = useState<string | null>(null)
-  const [activeTab,    setActiveTab]    = useState<Tab>('dashboard')
-  const [isOnline,     setIsOnline]     = useState(true)
-  const [sidebarOpen,  setSidebarOpen]  = useState(false)
-  const [stats,        setStats]        = useState<VendorStats | null>(null)
-  const [orders,       setOrders]       = useState<ApiOrder[]>([])
-  const [statsLoading, setStatsLoading] = useState(false)
-  const [ordersLoading,setOrdersLoading]= useState(false)
+  const [token,           setTokenState]      = useState<string | null>(null)
+  const [activeTab,       setActiveTab]       = useState<Tab>('dashboard')
+  const [isOnline,        setIsOnline]        = useState(true)
+  const [sidebarOpen,     setSidebarOpen]     = useState(false)
+  const [stats,           setStats]           = useState<VendorStats | null>(null)
+  const [orders,          setOrders]          = useState<ApiOrder[]>([])
+  const [statsLoading,    setStatsLoading]    = useState(false)
+  const [ordersLoading,   setOrdersLoading]   = useState(false)
+  const [pendingApproval, setPendingApproval] = useState(false)
 
   // Hydrate token on mount
   useEffect(() => {
@@ -1077,18 +1078,20 @@ export default function VendorPage() {
   useEffect(() => {
     if (!token) return
 
+    setPendingApproval(false)
     setStatsLoading(true)
     api.vendor.stats(token)
       .then(setStats)
       .catch(err => {
-        if (err?.status === 401 || err?.status === 403) handleLogout()
+        if (err?.status === 403) { setPendingApproval(true); return }
+        if (err?.status === 401) handleLogout()
       })
       .finally(() => setStatsLoading(false))
 
     setOrdersLoading(true)
     api.vendor.orders(token)
       .then(setOrders)
-      .catch(console.error)
+      .catch(() => { /* orders will just be empty for pending vendors */ })
       .finally(() => setOrdersLoading(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
@@ -1102,9 +1105,33 @@ export default function VendorPage() {
     setTokenState(null)
     setStats(null)
     setOrders([])
+    setPendingApproval(false)
   }
 
   if (!token) return <LoginScreen onLogin={handleLogin} />
+
+  if (pendingApproval) return (
+    <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4">
+      <AnimateIn direction="up">
+        <div className="bg-white rounded-3xl shadow-card border border-brand-border p-8 w-full max-w-sm text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-5">
+            <Timer className="w-8 h-8 text-amber-500" />
+          </div>
+          <h2 className="font-syne font-extrabold text-2xl text-brand-dark mb-2">Application Pending</h2>
+          <p className="text-brand-muted text-sm leading-relaxed mb-6">
+            Your vendor application is under review. Our team will approve your account within 24–48 hours.
+            You&apos;ll be able to access your dashboard once approved.
+          </p>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 border border-brand-border rounded-xl py-3 text-sm font-semibold text-brand-muted hover:text-brand-dark hover:border-brand-dark transition-colors"
+          >
+            <LogOut className="w-4 h-4" /> Sign out
+          </button>
+        </div>
+      </AnimateIn>
+    </div>
+  )
 
   const CONTENT: Record<Tab, ReactNode> = {
     dashboard: <DashboardTab stats={stats} orders={orders} loading={statsLoading} />,
