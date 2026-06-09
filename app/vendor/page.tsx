@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import {
   api, getToken, setToken, clearToken,
-  type VendorStats, type ApiOrder, type ApiMenuItem, type ApiUser,
+  type VendorStats, type ApiOrder, type ApiMenuItem,
 } from '@/lib/api'
 
 type Tab = 'dashboard' | 'orders' | 'menu' | 'earnings' | 'profile'
@@ -46,7 +46,7 @@ function Spinner({ size = 'md' }: { size?: 'sm' | 'md' }) {
 }
 
 // ── Login screen ───────────────────────────────────────────────
-function LoginScreen({ onLogin }: { onLogin: (token: string, user: ApiUser) => void }) {
+function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [loading,  setLoading]  = useState(false)
@@ -63,7 +63,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, user: ApiUser) => v
         return
       }
       setToken(token)
-      onLogin(token, user)
+      onLogin(token)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
@@ -1093,7 +1093,7 @@ export default function VendorPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
-  function handleLogin(t: string, _user: ApiUser) {
+  function handleLogin(t: string) {
     setTokenState(t)
   }
 
